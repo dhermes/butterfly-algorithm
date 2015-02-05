@@ -1,0 +1,7 @@
+# Output files produced by pdflatex
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
