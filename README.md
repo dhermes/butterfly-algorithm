@@ -11,6 +11,43 @@ easier to digest.
 
 See [MIT 18.336][2] for a great [diagram][3].
 
+### Notes
+
+To avoid using STIX fonts (don't look great for LaTeX slides),
+you can manually edit your IPython install.
+
+First locate it
+
+```
+$ python -c 'import IPython; print IPython.__file__'
+/foo/IPython/__init__.pyc
+```
+
+then edit. For example, if it is installed in
+
+```
+/foo/IPython/...
+```
+
+as above, edit the file
+
+```
+/foo/IPython/html/static/notebook/js/mathjaxutils.js
+```
+
+The sample edit is found in `patched-mathjaxutils.js` here.
+The key change is in the `"HTML-CSS"` key passed in to
+`MathJax.Hub.Config`:
+
+```javascript
+                "HTML-CSS": {
+                    availableFonts: ["TeX"],  // Line added
+                    preferredFont: "TeX",  // Line added
+                    styles: {'.MathJax_Display': {"margin": 0}},
+                    linebreaks: { automatic: true }
+                }
+```
+
 [1]: http://nbviewer.ipython.org/github/dhermes/butterfly-algorithm/blob/master/butterfly.ipynb
 [2]: http://math.mit.edu/icg/resources/teaching/18.336/
 [3]: http://math.mit.edu/icg/resources/teaching/18.336/trees.jpg
