@@ -36,9 +36,9 @@ as above, edit the files
 /foo/IPython/nbconvert/templates/html/mathjax.tpl
 ```
 
-The sample edits are found in `patched-mathjaxutils.js` and
-`patched-mathjax.tpl` here. The key change is in the `"HTML-CSS"` key
-passed in to `MathJax.Hub.Config`:
+The sample edits are found in `patches/patched-mathjaxutils.js` and
+`patches/patched-mathjax.tpl` here. The key change is in the `"HTML-CSS"`
+key passed in to `MathJax.Hub.Config`:
 
 ```javascript
     "HTML-CSS": {
@@ -49,6 +49,12 @@ passed in to `MathJax.Hub.Config`:
     }
 ```
 
+The blue whale [image][4] and the butterfly [image][6] are Creative Commons
+licensed via [Attribution 2.0 Generic][5].
+
 [1]: http://nbviewer.ipython.org/github/dhermes/butterfly-algorithm/blob/master/butterfly.ipynb
 [2]: http://math.mit.edu/icg/resources/teaching/18.336/
 [3]: http://math.mit.edu/icg/resources/teaching/18.336/trees.jpg
+[4]: https://flic.kr/p/poVgjn
+[5]: https://creativecommons.org/licenses/by/2.0/
+[6]: https://flic.kr/p/avcWX2
