@@ -122,3 +122,28 @@ def make_2D_example_plot(ell, N_exp=N_exp):
     fig.set_size_inches(2 * width, 2 * height, forward=True)
 
     plt.show()
+
+
+def make_1D_centers(L=N_exp):
+    rows, cols = 1, 1
+    fig, ax = plt.subplots(rows, cols)
+
+    N = 2**L
+
+    all_s = np.linspace(0, N, N + 1)
+    ax.plot(all_s, np.zeros(all_s.shape),
+            color='b', marker='o')
+
+    center_pts = all_s[:-1] + 0.5
+    ax.plot(center_pts, np.zeros(center_pts.shape),
+            color='r', marker='o', linestyle='None')
+
+    remove_axis_frame(ax)
+    ax.axis('scaled')
+    ax.set_xlim(-1, N + 1)
+    ax.set_ylim(-0.5, 0.5)
+
+    width, height = fig.get_size_inches()
+    fig.set_size_inches(2 * width, 2 * height, forward=True)
+
+    plt.show()
