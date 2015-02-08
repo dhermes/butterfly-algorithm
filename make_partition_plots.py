@@ -132,11 +132,11 @@ def make_1D_centers(L=N_exp):
 
     all_s = np.linspace(0, N, N + 1)
     ax.plot(all_s, np.zeros(all_s.shape),
-            color='b', marker='o')
+            color='black', marker='|', markersize=20)
 
     center_pts = all_s[:-1] + 0.5
     ax.plot(center_pts, np.zeros(center_pts.shape),
-            color='r', marker='o', linestyle='None')
+            color='red', marker='o', linestyle='None')
 
     remove_axis_frame(ax)
     ax.axis('scaled')
