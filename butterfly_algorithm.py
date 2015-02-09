@@ -115,6 +115,13 @@ class DataCoefficient(object):
         self.sigma_index = sigma_index
         self.sigma = self.owner._sigma_val(self.level, self.sigma_index)
 
+    def s_values(self):
+        stride = 2**self.level
+        begin_index = stride * self.sigma_index
+        for i in xrange(begin_index, begin_index + stride):
+            for val in self.owner.s_values_by_bin[i]:
+                yield val
+
 
 def make_intervals(t, s, L=None):
     if L is None:
@@ -126,10 +133,3 @@ def make_intervals(t, s, L=None):
         DataCoefficient(owner, level, tau_index, sigma_index)
         for sigma_index in xrange(2**L)
     ]
-
-
-
-def test_make_intervals(L=4):
-    t, s = dft_data(2**L)
-    intervals = make_intervals(t, s, L=L)
-    return intervals
