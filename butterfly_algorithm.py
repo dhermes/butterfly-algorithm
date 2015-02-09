@@ -49,6 +49,7 @@ def create_sigma_bins(s, data, num_bins):
     result = []
     sigma_vals = []
     s_index = 0
+    # NOTE: Consider using numpy.digitize.
     for curr_bin_index in xrange(num_bins):
         left_val, right_val = right_val, bin_endpoints[curr_bin_index + 1]
         sigma_vals.append(0.5 * (left_val + right_val))
@@ -147,8 +148,15 @@ def intermediate_coeffs(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
     return sub_result, sub_result_prime
 
 
+# This is the big bottle neck, since it will be called 2**L times
+# for every iteration.
 def coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
                     sigma, sigma_prime, sigma_minus, alpha, R):
+    # D_tau_sigma / D_tau_sigma_prime -- 11 complex numbers in a tuple
+    # tau / tau_plus -- REAL
+    # sigma / sigma_prime / sigma_minus - REAL
+    # alpha - non-negative INT
+    # R - non-negative INT
     result = 0.0
     for beta in xrange(alpha + 1):
         sub_result, sub_result_prime = intermediate_coeffs(
@@ -212,6 +220,7 @@ def match_with_tau(t_vals, tau_endpoints):
 
     result = {}
     t_index = 0
+    # NOTE: Consider using numpy.digitize.
     for curr_bin_index in xrange(num_bins):
         left_val, right_val = tau_endpoints[curr_bin_index]
         tau = 0.5 * (left_val + right_val)
