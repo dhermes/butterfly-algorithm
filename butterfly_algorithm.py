@@ -1,6 +1,5 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from scipy.misc import comb as combinations
 from scipy.misc import factorial
 import time
 
@@ -133,12 +132,14 @@ def refine_tau_endpoints(tau_endpoints):
 
 
 def intermediate_coeffs(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-                        sigma, sigma_prime, alpha, R):
+                        sigma, sigma_prime, alpha, R, factorial_values):
     sub_result = sub_result_prime = 0.0
     # gamma == beta + alpha ==> alpha <= gamma < R
     for gamma in xrange(alpha, R):
-        comb_val = (combinations(gamma, alpha) *
-                    (tau_plus - tau)**(gamma - alpha))
+        comb_val = (
+            (factorial_values[gamma] * (tau_plus - tau)**(gamma - alpha)) /
+            (factorial_values[gamma - alpha] * factorial_values[alpha])
+        )
         sub_result += comb_val * D_tau_sigma[gamma]
         sub_result_prime += comb_val * D_tau_sigma_prime[gamma]
 
@@ -151,29 +152,26 @@ def intermediate_coeffs(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
 # This is the big bottle neck, since it will be called 2**L times
 # for every iteration.
 def coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-                    sigma, sigma_prime, sigma_minus, alpha, R):
-    # D_tau_sigma / D_tau_sigma_prime -- 11 complex numbers in a tuple
-    # tau / tau_plus -- REAL
-    # sigma / sigma_prime / sigma_minus - REAL
-    # alpha - non-negative INT
-    # R - non-negative INT
+                    sigma, sigma_prime, sigma_minus, alpha, R,
+                    factorial_values):
     result = 0.0
     for beta in xrange(alpha + 1):
         sub_result, sub_result_prime = intermediate_coeffs(
             D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-            sigma, sigma_prime, beta, R)
+            sigma, sigma_prime, beta, R, factorial_values)
 
         partial = (sigma - sigma_minus)**(alpha - beta) * sub_result
         partial_prime = ((sigma_prime - sigma_minus)**(alpha - beta) *
                          sub_result_prime)
         result += (
             (- 1.0j)**(alpha - beta) *
-            (partial + partial_prime) / factorial(alpha - beta)
+            (partial + partial_prime) / factorial_values[alpha - beta]
         )
     return result
 
 
-def update_coefficients(coefficients_list, sigma_vals, tau_endpoints):
+def update_coefficients(coefficients_list, sigma_vals, tau_endpoints,
+                        factorial_values):
     new_sigma_vals = coarsen_sigma_vals(sigma_vals)
     new_tau_endpoints = refine_tau_endpoints(tau_endpoints)
 
@@ -205,7 +203,8 @@ def update_coefficients(coefficients_list, sigma_vals, tau_endpoints):
 
             new_coeffs = tuple(
                 coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-                                sigma, sigma_prime, sigma_minus, alpha, R)
+                                sigma, sigma_prime, sigma_minus, alpha, R,
+                                factorial_values)
                 for alpha in xrange(R)
             )
             new_coefficients_list.append(new_coeffs)
@@ -258,10 +257,11 @@ def approximate_f_hat(t, s, data, R=8):
     duration = time.time() - start
     info('initial_coefficients time: %g' % (duration,))
 
+    factorial_values = factorial(range(R))
     for _ in xrange(L):
         start = time.time()
         coefficients_list, sigma_vals, tau_endpoints = update_coefficients(
-            coefficients_list, sigma_vals, tau_endpoints)
+            coefficients_list, sigma_vals, tau_endpoints, factorial_values)
         duration = time.time() - start
         info('loop %d time: %g' % (_, duration))
 
