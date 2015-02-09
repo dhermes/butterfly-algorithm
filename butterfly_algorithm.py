@@ -64,7 +64,7 @@ def bin_coefficient(bin_pairs, tau, sigma, alpha):
     return (- 1.0j)**alpha / factorial(alpha) * result
 
 
-def initial_coefficients(s, data, t, R=8):
+def initial_coefficients(s, data, t, R=8, L=None):
     """Computes the set of D(tau, sigma, alpha) coefficients when ell = 0.
 
     Returns two values:
@@ -74,7 +74,8 @@ def initial_coefficients(s, data, t, R=8):
     - A dictionary of the s values in each bin; we no longer need s -> D(s)
       mapping after using the D(s) values to compute D(tau, sigma, alpha)
     """
-    L = int(np.floor(np.log2(len(s))))
+    if L is None:
+        L = int(np.floor(np.log2(len(s))))
     max_num_bins = 2**L
 
     sigma_vals, sigma_bins = create_sigma_bins(s, data, max_num_bins)
@@ -193,3 +194,59 @@ def update_coefficients(coefficients_list, sigma_vals, tau_endpoints):
             new_coefficients_list.append(new_coeffs)
 
     return new_coefficients_list, new_sigma_vals, new_tau_endpoints
+
+
+def match_with_tau(t_vals, tau_endpoints):
+    sorted_indices = np.argsort(t_vals)
+    num_bins = len(tau_endpoints)
+    num_t = len(t_vals)
+
+    result = {}
+    t_index = 0
+    for curr_bin_index in xrange(num_bins):
+        left_val, right_val = tau_endpoints[curr_bin_index]
+        tau = 0.5 * (left_val + right_val)
+        curr_values = []
+        while t_index < num_t:
+            sorted_index = sorted_indices[t_index]
+            curr_val = t_vals[sorted_index]
+            if curr_val > right_val:
+                break
+            curr_values.append((sorted_index, curr_val))
+            result[sorted_index] = (tau, curr_bin_index)
+            t_index += 1
+
+    return result
+
+
+def approximate_f_hat(t, s, data, R=8):
+    L = int(np.floor(np.log2(len(s))))
+    coefficients_list, sigma_vals, tau_endpoints = initial_coefficients(
+        s, data, t, R=R, L=L)
+    for _ in xrange(L):
+        coefficients_list, sigma_vals, tau_endpoints = update_coefficients(
+            coefficients_list, sigma_vals, tau_endpoints)
+
+    sigma, = sigma_vals
+
+    tau_map = match_with_tau(t_vals, tau_endpoints)
+    f_hat = []
+    for t_index, t_val in enumerate(t):
+        tau, tau_index = tau_map[t_index]
+        # K_prime = dft_kernel(t_val - tau, sigma) * (t_val - tau)**alpha
+        f_hat.append(dft_kernel(t_val - tau, sigma) * np.dot(
+            (t_val - tau)**np.arange(R),
+            coefficients_list[tau_index],
+        ))
+    return np.array(f_hat)
+
+
+def simple_correctness_test():
+    L = 4
+    N = 2**L
+    t, s = dft_data(N)
+    data = np.random.random(t.shape)
+    R = 11
+    f_hat = approximate_f_hat(t, s, data, R=R)
+    fft_f_hat = np.fft.fft(data, n=N)
+    print np.linalg.norm(f_hat - fft_f_hat, ord=2)
