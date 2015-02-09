@@ -5,6 +5,17 @@ from scipy.misc import factorial
 import time
 
 
+DEBUG = True
+
+
+if DEBUG:
+    def info(msg):
+        print(msg)
+else:
+    def info(msg):
+        pass
+
+
 def dft_kernel(t, s):
     return np.exp(- 1.0j * t * s)
 
@@ -217,17 +228,7 @@ def match_with_tau(t_vals, tau_endpoints):
     return result
 
 
-def approximate_f_hat(t, s, data, R=8):
-    L = int(np.floor(np.log2(len(s))))
-    coefficients_list, sigma_vals, tau_endpoints = initial_coefficients(
-        s, data, t, R=R, L=L)
-    for _ in xrange(L):
-        coefficients_list, sigma_vals, tau_endpoints = update_coefficients(
-            coefficients_list, sigma_vals, tau_endpoints)
-
-    sigma, = sigma_vals
-
-    tau_map = match_with_tau(t, tau_endpoints)
+def make_f_hat(t, tau_map, sigma, R, coefficients_list):
     f_hat = []
     for t_index, t_val in enumerate(t):
         tau, tau_index = tau_map[t_index]
@@ -236,6 +237,37 @@ def approximate_f_hat(t, s, data, R=8):
             (t_val - tau)**np.arange(R),
             coefficients_list[tau_index],
         ))
+    return f_hat
+
+
+def approximate_f_hat(t, s, data, R=8):
+    L = int(np.floor(np.log2(len(s))))
+
+    start = time.time()
+    coefficients_list, sigma_vals, tau_endpoints = initial_coefficients(
+        s, data, t, L, R=R)
+    duration = time.time() - start
+    info('initial_coefficients time: %g' % (duration,))
+
+    for _ in xrange(L):
+        start = time.time()
+        coefficients_list, sigma_vals, tau_endpoints = update_coefficients(
+            coefficients_list, sigma_vals, tau_endpoints)
+        duration = time.time() - start
+        info('loop %d time: %g' % (_, duration))
+
+    # There should be exactly one left.
+    sigma, = sigma_vals
+
+    start = time.time()
+    tau_map = match_with_tau(t, tau_endpoints)
+    duration = time.time() - start
+    info('match_with_tau time: %g' % (duration,))
+
+    start = time.time()
+    f_hat = make_f_hat(t, tau_map, sigma, R, coefficients_list)
+    duration = time.time() - start
+    info('make_f_hat time: %g' % (duration,))
     return np.array(f_hat)
 
 
@@ -243,10 +275,7 @@ def simple_correctness_test(L=5, R=11):
     N = 2**L
     t, s = dft_data(N)
     data = np.random.random(t.shape)
-    start = time.time()
     f_hat = approximate_f_hat(t, s, data, R=R)
-    duration = time.time() - start
-    print 'duration:', duration
     fft_f_hat = np.fft.fft(data, n=N)
-    print '2-norm:', np.linalg.norm(f_hat - fft_f_hat, ord=2)
-    print 'sup-norm:', np.linalg.norm(f_hat - fft_f_hat, ord=np.inf)
+    print('2-norm: %g' % (np.linalg.norm(f_hat - fft_f_hat, ord=2),))
+    print('sup-norm: %g' % (np.linalg.norm(f_hat - fft_f_hat, ord=np.inf),))
