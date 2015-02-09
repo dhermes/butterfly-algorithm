@@ -45,81 +45,85 @@ def solve_problem_slides():
 
 
 class CoefficientsOwner(object):
+    """General information about a set target and source data.
 
-    def __init__(self, level, L, s, t):
-        self.level = level
+    Assumes:
+    - s, t are real
+    - s is in ascending order
+    """
+
+    def __init__(self, L, s, t):
         self.L = L
         self.s = s
-        self.t = t
+        # Don't need t for the coefficients, just need tau.
 
-        self.max_t = np.max(t)
-        self.min_t = np.min(t)
-        self.max_s = np.max(s)
-        self.min_s = np.min(s)
+        self.max_num_bins = 2**self.L
+        # NOTE: We could find the maximum and minimum in a single
+        #       pass through t (instead of separate calls).
+        self.t_endpoints = tuple(
+            np.linspace(np.min(t), np.max(t), self.max_num_bins + 1).tolist())
+        self.s_endpoints = tuple(
+            np.linspace(np.min(s), np.max(s), self.max_num_bins + 1).tolist())
 
-        self.num_tau = 2**self.level
-        self.num_sigma = 2**(self.L - self.level)
+        self.s_values_by_bin = self._s_values_by_bin()
 
-        self.tau_width = (self.max_t - self.min_t) / float(self.num_tau)
-        self.sigma_width = (self.max_s - self.min_s) / float(self.num_sigma)
+    def _tau_val(self, level, tau_index):
+        stride = 2**(self.L - level)
+        left_val = self.t_endpoints[stride * tau_index]
+        right_val = self.t_endpoints[stride * (tau_index + 1)]
+        return 0.5 * (left_val + right_val)
 
-        self._tau_values = {}
-        self._sigma_values = {}
-        self._s_values_by_bin = {}
+    def _sigma_val(self, level, sigma_index):
+        stride = 2**level
+        left_val = self.s_endpoints[stride * sigma_index]
+        right_val = self.s_endpoints[stride * (sigma_index + 1)]
+        return 0.5 * (left_val + right_val)
 
-    def _tau_val(self, tau_index):
-        if tau_index not in self._tau_values:
-            interval_begin = self.min_t + tau_index * self.tau_width
-            self._tau_values[tau_index] = interval_begin + 0.5 * self.tau_width
-        return self._tau_values[tau_index]
+    def _s_values_by_bin(self):
+        result = {}
+        curr_bin_index = 0
+        right_val = self.s_endpoints[curr_bin_index + 1]
 
-    def _sigma_val(self, sigma_index):
-        if sigma_index not in self._sigma_values:
-            interval_begin = self.min_s + sigma_index * self.sigma_width
-            self._sigma_values[sigma_index] = (interval_begin +
-                                               0.5 * self.sigma_width)
-        return self._sigma_values[sigma_index]
-
-    def _get_s_values(self, sigma_index):
-        if sigma_index not in self._s_values_by_bin:
-            interval_begin = self.min_s + sigma_index * self.sigma_width
-            if sigma_index == self.num_sigma - 1:
-                interval_end = self.max_s
+        # Assumes s is sorted.
+        curr_values = []
+        for s_value in self.s:
+            if s_value <= right_val:
+                curr_values.append(s_value)
             else:
-                interval_end = interval_begin + self.sigma_width
+                result[curr_bin_index] = tuple(curr_values)
+                # Increment until s_value is contained.
+                while s_value > right_val:
+                    curr_bin_index += 1
+                    right_val = self.s_endpoints[curr_bin_index + 1]
+                curr_values = [s_value]
 
-            s_values = [value for value in self.s
-                        if interval_begin < value <= interval_end]
+        # Add the final set of values.
+        result[curr_bin_index] = tuple(curr_values)
 
-            if sigma_index == 0 and self.min_s in self.s:
-                s_values.insert(0, self.min_s)
-
-            self._s_values_by_bin[sigma_index] = s_values
-
-        return self._s_values_by_bin[sigma_index]
+        return result
 
 
 class DataCoefficient(object):
 
-    def __init__(self, owner, tau_index, sigma_index):
+    def __init__(self, owner, level, tau_index, sigma_index):
         self.owner = owner
+        self.level = level
 
         self.tau_index = tau_index
-        self.tau = self.owner._tau_val(self.tau_index)
+        self.tau = self.owner._tau_val(self.level, self.tau_index)
 
         self.sigma_index = sigma_index
-        self.sigma = self.owner._sigma_val(self.sigma_index)
-
-        self.s_values = self.owner._get_s_values(self.sigma_index)
+        self.sigma = self.owner._sigma_val(self.level, self.sigma_index)
 
 
 def make_intervals(t, s, L=None):
     if L is None:
         L = int(np.floor(np.log2(len(s))))
 
-    owner = CoefficientsOwner(0, L, s, t)
+    owner = CoefficientsOwner(L, s, t)
+    level = tau_index = 0
     return [
-        DataCoefficient(owner, 0, sigma_index)
+        DataCoefficient(owner, level, tau_index, sigma_index)
         for sigma_index in xrange(2**L)
     ]
 
