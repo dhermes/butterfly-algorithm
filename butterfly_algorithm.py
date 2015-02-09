@@ -1,14 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-
-
-def compute_f_hat(f, t, s, kernel_func):
-    f_hat = np.zeros(f.shape, dtype=np.complex128)
-    for k in xrange(len(f)):
-        # Vectorized update.
-        f_hat[k] = np.sum(kernel_func(t[k], s) * f)
-
-    return f_hat
+from scipy.misc import factorial
 
 
 def dft_kernel(t, s):
@@ -22,114 +14,89 @@ def dft_data(N):
     return t, s
 
 
-def solve_problem_slides():
-    # http://www.mathworks.com/help/matlab/math/fast-fourier-transform-fft.html
-    data = np.load('resources/bluewhale.npz')
-    X = data['X']
-    sampling_rate = int(data['rate'])
+def create_sigma_bins(s, data, num_bins):
+    """Puts source points from s into bins.
 
-    blue_whale_begin = 24500 - 1
-    blue_whale_end = 31000 - 1
+    Also puts the corresponding data to s in the bin so that
+    the s -> D(s) mapping is preserved to use when creating
+    a coefficient.
 
-    blue_whale_call = X[blue_whale_begin:blue_whale_end + 1]
-    size_call = len(blue_whale_call)
+    Also returns a list of the endpoints of the bins.
 
-    N = int(2**np.ceil(np.log2(size_call)))
-
-    blue_whale_call = np.hstack([
-        blue_whale_call,
-        np.zeros(N - len(blue_whale_call)),
-    ])
-
-    dft_whale_call = np.fft.fft(blue_whale_call, n=N)
-
-
-class CoefficientsOwner(object):
-    """General information about a set target and source data.
-
-    Assumes:
-    - s, t are real
-    - s is in ascending order
+    Assumes s is sorted.
     """
+    result = {}
+    curr_bin_index = 0
 
-    def __init__(self, L, s, t):
-        self.L = L
-        self.s = s
-        # Don't need t for the coefficients, just need tau.
+    max_s = s[-1]  # Due to ordering.
+    min_s = s[0]  # Due to ordering.
+    bin_width = (max_s - min_s) / float(num_bins)
+    right_val = bin_width
 
-        self.max_num_bins = 2**self.L
-        # NOTE: We could find the maximum and minimum in a single
-        #       pass through t (instead of separate calls).
-        self.t_endpoints = tuple(
-            np.linspace(np.min(t), np.max(t), self.max_num_bins + 1).tolist())
-        self.s_endpoints = tuple(
-            np.linspace(np.min(s), np.max(s), self.max_num_bins + 1).tolist())
+    curr_values = []
+    for pair in zip(s, data):
+        # pair[0] == s_value
+        if pair[0] <= right_val:
+            curr_values.append(pair)
+        else:
+            result[curr_bin_index] = tuple(curr_values)
+            # Increment until s_value is contained.
+            while pair[0] > right_val:
+                curr_bin_index += 1
+                right_val += bin_width
+            curr_values = [pair]
 
-        self.s_values_by_bin = self._s_values_by_bin()
+    # Add the final set of values.
+    result[curr_bin_index] = tuple(curr_values)
 
-    def _tau_val(self, level, tau_index):
-        stride = 2**(self.L - level)
-        left_val = self.t_endpoints[stride * tau_index]
-        right_val = self.t_endpoints[stride * (tau_index + 1)]
-        return 0.5 * (left_val + right_val)
-
-    def _sigma_val(self, level, sigma_index):
-        stride = 2**level
-        left_val = self.s_endpoints[stride * sigma_index]
-        right_val = self.s_endpoints[stride * (sigma_index + 1)]
-        return 0.5 * (left_val + right_val)
-
-    def _s_values_by_bin(self):
-        result = {}
-        curr_bin_index = 0
-        right_val = self.s_endpoints[curr_bin_index + 1]
-
-        # Assumes s is sorted.
-        curr_values = []
-        for s_value in self.s:
-            if s_value <= right_val:
-                curr_values.append(s_value)
-            else:
-                result[curr_bin_index] = tuple(curr_values)
-                # Increment until s_value is contained.
-                while s_value > right_val:
-                    curr_bin_index += 1
-                    right_val = self.s_endpoints[curr_bin_index + 1]
-                curr_values = [s_value]
-
-        # Add the final set of values.
-        result[curr_bin_index] = tuple(curr_values)
-
-        return result
+    bin_endpoints = np.linspace(min_s, max_s, num_bins + 1)
+    return bin_endpoints, result
 
 
-class DataCoefficient(object):
+def bin_coefficient(bin_pairs, tau, sigma, alpha):
+    """Computes the coefficient for a given bin.
 
-    def __init__(self, owner, level, tau_index, sigma_index):
-        self.owner = owner
-        self.level = level
+    Assumes bin_pairs is a tuple of pairs (s, D(s)) and that these
+    values represent all s in B(sigma).
 
-        self.tau_index = tau_index
-        self.tau = self.owner._tau_val(self.level, self.tau_index)
-
-        self.sigma_index = sigma_index
-        self.sigma = self.owner._sigma_val(self.level, self.sigma_index)
-
-    def s_values(self):
-        stride = 2**self.level
-        begin_index = stride * self.sigma_index
-        for i in xrange(begin_index, begin_index + stride):
-            for val in self.owner.s_values_by_bin[i]:
-                yield val
+    Computes D(tau, sigma, alpha) under these assumptions.
+    """
+    result = 0.0
+    for s_val, data_val in bin_pairs:
+        result += dft_kernel(tau, s_val) * (s_val - sigma)**alpha * data_val
+    return (- 1.0j)**alpha / factorial(alpha) * result
 
 
-def make_intervals(t, s, L=None):
-    if L is None:
-        L = int(np.floor(np.log2(len(s))))
+def initial_coefficients(s, data, t, R=8):
+    """Computes the set of D(tau, sigma, alpha) coefficients when ell = 0.
 
-    owner = CoefficientsOwner(L, s, t)
-    level = tau_index = 0
-    return [
-        DataCoefficient(owner, level, tau_index, sigma_index)
-        for sigma_index in xrange(2**L)
-    ]
+    Returns two values:
+    - A list of lists of the initial coefficients for tau the only center at
+      level ell = 0 and all possible sigma values. Uses (R) as the truncation
+      of the Taylor series
+    - A dictionary of the s values in each bin; we no longer need s -> D(s)
+      mapping after using the D(s) values to compute D(tau, sigma, alpha)
+    """
+    L = int(np.floor(np.log2(len(s))))
+    max_num_bins = 2**L
+
+    bin_endpoints, sigma_bins = create_sigma_bins(s, data, max_num_bins)
+    # NOTE: We could find the maximum and minimum in a single
+    #       pass through t (instead of separate calls).
+    min_t = np.min(t)
+    max_t = np.max(t)
+    tau = 0.5 * (min_t + max_t)
+
+    coefficients_list = []
+    s_bin_values = {}
+    for index in xrange(max_num_bins):
+        left, right = bin_endpoints[index:index + 2]
+        sigma = 0.5 * (left + right)
+        bin_pairs = sigma_bins.get(index, ())
+        s_bin_values[index] = (left, right,
+                               tuple(pair[0] for pair in bin_pairs))
+        coefficients = [bin_coefficient(bin_pairs, tau, sigma, alpha)
+                        for alpha in xrange(R)]
+        coefficients_list.append(coefficients)
+
+    return coefficients_list, s_bin_values
