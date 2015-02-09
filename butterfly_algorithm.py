@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy.misc import comb as combinations
 from scipy.misc import factorial
+import time
 
 
 def dft_kernel(t, s):
@@ -229,7 +230,7 @@ def approximate_f_hat(t, s, data, R=8):
 
     sigma, = sigma_vals
 
-    tau_map = match_with_tau(t_vals, tau_endpoints)
+    tau_map = match_with_tau(t, tau_endpoints)
     f_hat = []
     for t_index, t_val in enumerate(t):
         tau, tau_index = tau_map[t_index]
@@ -241,12 +242,14 @@ def approximate_f_hat(t, s, data, R=8):
     return np.array(f_hat)
 
 
-def simple_correctness_test():
-    L = 4
+def simple_correctness_test(L=5, R=11):
     N = 2**L
     t, s = dft_data(N)
     data = np.random.random(t.shape)
-    R = 11
+    start = time.time()
     f_hat = approximate_f_hat(t, s, data, R=R)
+    duration = time.time() - start
+    print 'duration:', duration
     fft_f_hat = np.fft.fft(data, n=N)
-    print np.linalg.norm(f_hat - fft_f_hat, ord=2)
+    print '2-norm:', np.linalg.norm(f_hat - fft_f_hat, ord=2)
+    print 'sup-norm:', np.linalg.norm(f_hat - fft_f_hat, ord=np.inf)
