@@ -27,24 +27,27 @@ def create_sigma_bins(s, data, num_bins):
     Assumes s is sorted.
     """
     # Due to ordering, max and min at beginning.
-    bin_width = (s[-1] - s[0]) / float(num_bins)
-    right_val = bin_width
+    bin_endpoints = np.linspace(s[0], s[-1], num_bins + 1)
+    left_val = 0
+    right_val = bin_endpoints[1]
 
     pairs = zip(s, data)  # Assumes same length.
     num_pairs = len(pairs)
 
     result = []
+    sigma_vals = []
     s_index = 0
     for curr_bin_index in xrange(num_bins):
+        sigma_vals.append(0.5 * (left_val + right_val))
         curr_values = []
         while s_index < num_pairs and pairs[s_index][0] <= right_val:
             curr_values.append(pairs[s_index])
             s_index += 1
         result.append(tuple(curr_values))
-        right_val += bin_width
+        if curr_bin_index < num_bins - 1:
+            left_val, right_val = right_val, bin_endpoints[curr_bin_index + 2]
 
-    bin_endpoints = np.linspace(s[0], s[-1], num_bins + 1)
-    return bin_endpoints, result
+    return sigma_vals, result
 
 
 def bin_coefficient(bin_pairs, tau, sigma, alpha):
@@ -74,7 +77,7 @@ def initial_coefficients(s, data, t, R=8):
     L = int(np.floor(np.log2(len(s))))
     max_num_bins = 2**L
 
-    bin_endpoints, sigma_bins = create_sigma_bins(s, data, max_num_bins)
+    sigma_vals, sigma_bins = create_sigma_bins(s, data, max_num_bins)
     # NOTE: We could find the maximum and minimum in a single
     #       pass through t (instead of separate calls).
     min_t = np.min(t)
@@ -82,33 +85,27 @@ def initial_coefficients(s, data, t, R=8):
     tau = 0.5 * (min_t + max_t)
 
     coefficients_list = []
-    s_bin_values = []
     for index in xrange(max_num_bins):
-        left, right = bin_endpoints[index:index + 2]
-        sigma = 0.5 * (left + right)
+        sigma = sigma_vals[index]
         bin_pairs = sigma_bins[index]
-        s_bin_values.append(
-            (left, right, tuple(pair[0] for pair in bin_pairs)),
-        )
         coefficients = tuple(bin_coefficient(bin_pairs, tau, sigma, alpha)
                              for alpha in xrange(R))
         coefficients_list.append(coefficients)
 
     tau_endpoints = [(min_t, max_t)]
-    return coefficients_list, s_bin_values, tau_endpoints
+    return coefficients_list, sigma_vals, tau_endpoints
 
 
-def coarsen_s_bin_values(s_bin_values):
-    N = len(s_bin_values)
+def coarsen_sigma_vals(sigma_vals):
+    N = len(sigma_vals)
     if N == 1:
-        return s_bin_values.copy()
+        return sigma_vals.copy()
     halfN, _ = divmod(N, 2)  # Assumes N is even
     result = []
     for i in xrange(halfN):
-        left = s_bin_values[2 * i][0]
-        right = s_bin_values[2 * i + 1][1]
-        s_vals = s_bin_values[2 * i][2] + s_bin_values[2 * i + 1][2]
-        result.append((left, right, s_vals))
+        left = sigma_vals[2 * i][0]
+        right = sigma_vals[2 * i + 1][1]
+        result.append(0.5 * (left + right))
     return result
 
 
