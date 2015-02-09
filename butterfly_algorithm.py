@@ -29,8 +29,8 @@ def create_sigma_bins(s, data, num_bins):
     """
     # Due to ordering, max and min at beginning.
     bin_endpoints = np.linspace(s[0], s[-1], num_bins + 1)
-    left_val = 0
-    right_val = bin_endpoints[1]
+    # This corresponds to iteration -1 of the loop.
+    left_val, right_val = None, bin_endpoints[0]
 
     pairs = zip(s, data)  # Assumes same length.
     num_pairs = len(pairs)
@@ -39,14 +39,13 @@ def create_sigma_bins(s, data, num_bins):
     sigma_vals = []
     s_index = 0
     for curr_bin_index in xrange(num_bins):
+        left_val, right_val = right_val, bin_endpoints[curr_bin_index + 1]
         sigma_vals.append(0.5 * (left_val + right_val))
         curr_values = []
         while s_index < num_pairs and pairs[s_index][0] <= right_val:
             curr_values.append(pairs[s_index])
             s_index += 1
         result.append(tuple(curr_values))
-        if curr_bin_index < num_bins - 1:
-            left_val, right_val = right_val, bin_endpoints[curr_bin_index + 2]
 
     return sigma_vals, result
 
@@ -60,12 +59,14 @@ def bin_coefficient(bin_pairs, tau, sigma, alpha):
     Computes D(tau, sigma, alpha) under these assumptions.
     """
     result = 0.0
+    # NOTE: We could speed this up by vectorizing but when we call it
+    #       `bin_pairs` will typically have just 1 value.
     for s_val, data_val in bin_pairs:
         result += dft_kernel(tau, s_val) * (s_val - sigma)**alpha * data_val
     return (- 1.0j)**alpha / factorial(alpha) * result
 
 
-def initial_coefficients(s, data, t, R=8, L=None):
+def initial_coefficients(s, data, t, L, R=8):
     """Computes the set of D(tau, sigma, alpha) coefficients when ell = 0.
 
     Returns two values:
@@ -75,8 +76,6 @@ def initial_coefficients(s, data, t, R=8, L=None):
     - A dictionary of the s values in each bin; we no longer need s -> D(s)
       mapping after using the D(s) values to compute D(tau, sigma, alpha)
     """
-    if L is None:
-        L = int(np.floor(np.log2(len(s))))
     max_num_bins = 2**L
 
     sigma_vals, sigma_bins = create_sigma_bins(s, data, max_num_bins)
@@ -99,10 +98,9 @@ def initial_coefficients(s, data, t, R=8, L=None):
 
 
 def coarsen_sigma_vals(sigma_vals):
+    # Assumes N is even.
     N = len(sigma_vals)
-    if N == 1:
-        raise ValueError('Cannot coarsen a singleton.')
-    halfN, _ = divmod(N, 2)  # Assumes N is even
+    halfN, _ = divmod(N, 2)
     result = []
     for i in xrange(halfN):
         left = sigma_vals[2 * i]
@@ -112,10 +110,8 @@ def coarsen_sigma_vals(sigma_vals):
 
 
 def refine_tau_endpoints(tau_endpoints):
-    N = len(tau_endpoints)
     result = []
-    for i in xrange(N):
-        left, right = tau_endpoints[i]
+    for left, right in tau_endpoints:
         mid = 0.5 * (left + right)
         result.extend([
             (left, mid),
@@ -125,11 +121,12 @@ def refine_tau_endpoints(tau_endpoints):
 
 
 def intermediate_coeffs(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-                        sigma, sigma_prime, beta, R):
+                        sigma, sigma_prime, alpha, R):
     sub_result = sub_result_prime = 0.0
-    for gamma in xrange(beta, R):
-        comb_val = (combinations(gamma, beta) *
-                    (tau_plus - tau)**(gamma - beta))
+    # gamma == beta + alpha ==> alpha <= gamma < R
+    for gamma in xrange(alpha, R):
+        comb_val = (combinations(gamma, alpha) *
+                    (tau_plus - tau)**(gamma - alpha))
         sub_result += comb_val * D_tau_sigma[gamma]
         sub_result_prime += comb_val * D_tau_sigma_prime[gamma]
 
