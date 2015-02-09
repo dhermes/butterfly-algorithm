@@ -3,6 +3,9 @@ import numpy as np
 from scipy.misc import factorial
 import time
 
+from _fortran_utils import speedup
+intermediate_coeffs = speedup.intermediate_coeffs
+
 
 DEBUG = True
 
@@ -131,34 +134,16 @@ def refine_tau_endpoints(tau_endpoints):
     return result
 
 
-def intermediate_coeffs(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-                        sigma, sigma_prime, alpha, R, factorial_values):
-    sub_result = sub_result_prime = 0.0
-    # gamma == beta + alpha ==> alpha <= gamma < R
-    for gamma in xrange(alpha, R):
-        comb_val = (
-            (factorial_values[gamma] * (tau_plus - tau)**(gamma - alpha)) /
-            (factorial_values[gamma - alpha] * factorial_values[alpha])
-        )
-        sub_result += comb_val * D_tau_sigma[gamma]
-        sub_result_prime += comb_val * D_tau_sigma_prime[gamma]
-
-    sub_result *= dft_kernel(tau_plus - tau, sigma)
-    sub_result_prime *= dft_kernel(tau_plus - tau, sigma_prime)
-
-    return sub_result, sub_result_prime
-
-
 # This is the big bottle neck, since it will be called 2**L times
 # for every iteration.
 def coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-                    sigma, sigma_prime, sigma_minus, alpha, R,
-                    factorial_values):
+                    sigma, sigma_prime, sigma_minus, alpha,
+                    factorial_values, R):
     result = 0.0
     for beta in xrange(alpha + 1):
         sub_result, sub_result_prime = intermediate_coeffs(
             D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-            sigma, sigma_prime, beta, R, factorial_values)
+            sigma, sigma_prime, beta, factorial_values, R)
 
         partial = (sigma - sigma_minus)**(alpha - beta) * sub_result
         partial_prime = ((sigma_prime - sigma_minus)**(alpha - beta) *
@@ -203,8 +188,8 @@ def update_coefficients(coefficients_list, sigma_vals, tau_endpoints,
 
             new_coeffs = tuple(
                 coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-                                sigma, sigma_prime, sigma_minus, alpha, R,
-                                factorial_values)
+                                sigma, sigma_prime, sigma_minus, alpha,
+                                factorial_values, R)
                 for alpha in xrange(R)
             )
             new_coefficients_list.append(new_coeffs)
