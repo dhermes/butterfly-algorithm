@@ -99,12 +99,12 @@ def initial_coefficients(s, data, t, R=8):
 def coarsen_sigma_vals(sigma_vals):
     N = len(sigma_vals)
     if N == 1:
-        return sigma_vals.copy()
+        raise ValueError('Cannot coarsen a singleton.')
     halfN, _ = divmod(N, 2)  # Assumes N is even
     result = []
     for i in xrange(halfN):
-        left = sigma_vals[2 * i][0]
-        right = sigma_vals[2 * i + 1][1]
+        left = sigma_vals[2 * i]
+        right = sigma_vals[2 * i + 1]
         result.append(0.5 * (left + right))
     return result
 
@@ -153,3 +153,43 @@ def coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
             (partial + partial_prime) / factorial(alpha - beta)
         )
     return result
+
+
+def update_coefficients(coefficients_list, sigma_vals, tau_endpoints):
+    new_sigma_vals = coarsen_sigma_vals(sigma_vals)
+    new_tau_endpoints = refine_tau_endpoints(tau_endpoints)
+
+    num_sigma = len(sigma_vals)
+    num_new_sigma = len(new_sigma_vals)
+    R = len(coefficients_list[0])
+
+    # We order the values of `coefficients_list` according to the
+    # tau index and then the sigma index.
+    # [ (tau(0), sigma(0)), (tau(0), sigma(1)), ... (tau(1), sigma(0)), ...]
+
+    new_coefficients_list = []
+    for tau_plus_index, tau_pair in enumerate(new_tau_endpoints):
+        tau_plus = 0.5 * (tau_pair[0] + tau_pair[1])
+        tau_index, _ = divmod(tau_plus_index, 2)
+        tau = 0.5 * (tau_endpoints[tau_index][0] + tau_endpoints[tau_index][1])
+
+        for sigma_minus_index, sigma_minus in enumerate(new_sigma_vals):
+            # We want the floor of (INDEX / 2).
+            sigma_index = 2 * sigma_minus_index
+            sigma_prime_index = 2 * sigma_minus_index + 1
+
+            sigma = sigma_vals[sigma_index]
+            sigma_prime = sigma_vals[sigma_prime_index]
+
+            D_tau_sigma = coefficients_list[tau_index * num_sigma + sigma_index]
+            D_tau_sigma_prime = coefficients_list[
+                tau_index * num_sigma + sigma_prime_index]
+
+            new_coeffs = tuple(
+                coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
+                                sigma, sigma_prime, sigma_minus, alpha, R)
+                for alpha in xrange(R)
+            )
+            new_coefficients_list.append(new_coeffs)
+
+    return new_coefficients_list, new_sigma_vals, new_tau_endpoints
