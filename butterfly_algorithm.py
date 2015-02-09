@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+from scipy.misc import comb as combinations
 from scipy.misc import factorial
 
 
@@ -121,4 +122,37 @@ def refine_tau_endpoints(tau_endpoints):
             (left, mid),
             (mid, right),
         ])
+    return result
+
+
+def intermediate_coeffs(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
+                        sigma, sigma_prime, beta, R):
+    sub_result = sub_result_prime = 0.0
+    for gamma in xrange(beta, R):
+        comb_val = (combinations(gamma, beta) *
+                    (tau_plus - tau)**(gamma - beta))
+        sub_result += comb_val * D_tau_sigma[gamma]
+        sub_result_prime += comb_val * D_tau_sigma_prime[gamma]
+
+    sub_result *= dft_kernel(tau_plus - tau, sigma)
+    sub_result_prime *= dft_kernel(tau_plus - tau, sigma_prime)
+
+    return sub_result, sub_result_prime
+
+
+def coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
+                    sigma, sigma_prime, sigma_minus, alpha, R):
+    result = 0.0
+    for beta in xrange(alpha + 1):
+        sub_result, sub_result_prime = intermediate_coeffs(
+            D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
+            sigma, sigma_prime, beta, R)
+
+        partial = (sigma - sigma_minus)**(alpha - beta) * sub_result
+        partial_prime = ((sigma_prime - sigma_minus)**(alpha - beta) *
+                         sub_result_prime)
+        result += (
+            (- 1.0j)**(alpha - beta) *
+            (partial + partial_prime) / factorial(alpha - beta)
+        )
     return result
