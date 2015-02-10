@@ -81,12 +81,12 @@ def bin_coefficient(bin_pairs, tau, sigma, alpha):
     return (- 1.0j)**alpha / factorial(alpha) * result
 
 
-def initial_coefficients(s, data, t, L, R=8):
+def initial_coefficients(s, data, t, L, M=8):
     """Computes the set of D(tau, sigma, alpha) coefficients when ell = 0.
 
     Returns two values:
     - A list of lists of the initial coefficients for tau the only center at
-      level ell = 0 and all possible sigma values. Uses (R) as the truncation
+      level ell = 0 and all possible sigma values. Uses (M) as the truncation
       of the Taylor series
     - A dictionary of the s values in each bin; we no longer need s -> D(s)
       mapping after using the D(s) values to compute D(tau, sigma, alpha)
@@ -105,7 +105,7 @@ def initial_coefficients(s, data, t, L, R=8):
         sigma = sigma_vals[index]
         bin_pairs = sigma_bins[index]
         coefficients = tuple(bin_coefficient(bin_pairs, tau, sigma, alpha)
-                             for alpha in xrange(R))
+                             for alpha in xrange(M))
         coefficients_list.append(coefficients)
 
     tau_endpoints = [(min_t, max_t)]
@@ -142,7 +142,7 @@ def update_coefficients(coefficients_list, sigma_vals, tau_endpoints,
 
     num_sigma = len(sigma_vals)
     num_new_sigma = len(new_sigma_vals)
-    R = len(coefficients_list[0])
+    M = len(coefficients_list[0])
 
     # We order the values of `coefficients_list` according to the
     # tau index and then the sigma index.
@@ -169,8 +169,8 @@ def update_coefficients(coefficients_list, sigma_vals, tau_endpoints,
             new_coeffs = tuple(
                 coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
                                 sigma, sigma_prime, sigma_minus, alpha,
-                                factorial_values, R)
-                for alpha in xrange(R)
+                                factorial_values, M)
+                for alpha in xrange(M)
             )
             new_coefficients_list.append(new_coeffs)
 
@@ -201,28 +201,26 @@ def match_with_tau(t_vals, tau_endpoints):
     return result
 
 
-def make_f_hat(t, tau_map, sigma, R, coefficients_list):
+def make_f_hat(t, tau_map, sigma, M, coefficients_list):
     f_hat = []
     for t_index, t_val in enumerate(t):
         tau, tau_index = tau_map[t_index]
         # K_prime = dft_kernel(t_val - tau, sigma) * (t_val - tau)**alpha
         f_hat.append(dft_kernel(t_val - tau, sigma) * np.dot(
-            (t_val - tau)**np.arange(R),
+            (t_val - tau)**np.arange(M),
             coefficients_list[tau_index],
         ))
     return f_hat
 
 
-def approximate_f_hat(t, s, data, R=8):
-    L = int(np.floor(np.log2(len(s))))
-
+def approximate_f_hat(t, s, data, L, M=8):
     start = time.time()
     coefficients_list, sigma_vals, tau_endpoints = initial_coefficients(
-        s, data, t, L, R=R)
+        s, data, t, L, M=M)
     duration = time.time() - start
     info('initial_coefficients time: %g' % (duration,))
 
-    factorial_values = factorial(range(R))
+    factorial_values = factorial(range(M))
     for _ in xrange(L):
         start = time.time()
         coefficients_list, sigma_vals, tau_endpoints = update_coefficients(
@@ -239,17 +237,17 @@ def approximate_f_hat(t, s, data, R=8):
     info('match_with_tau time: %g' % (duration,))
 
     start = time.time()
-    f_hat = make_f_hat(t, tau_map, sigma, R, coefficients_list)
+    f_hat = make_f_hat(t, tau_map, sigma, M, coefficients_list)
     duration = time.time() - start
     info('make_f_hat time: %g' % (duration,))
     return np.array(f_hat)
 
 
-def simple_correctness_test(L=5, R=11):
+def simple_correctness_test(L=5, M=11):
     N = 2**L
     t, s = dft_data(N)
     data = np.random.random(t.shape)
-    f_hat = approximate_f_hat(t, s, data, R=R)
+    f_hat = approximate_f_hat(t, s, data, L, M=M)
     fft_f_hat = np.fft.fft(data, n=N)
     print('2-norm: %g' % (np.linalg.norm(f_hat - fft_f_hat, ord=2),))
     print('sup-norm: %g' % (np.linalg.norm(f_hat - fft_f_hat, ord=np.inf),))

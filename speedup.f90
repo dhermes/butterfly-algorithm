@@ -16,16 +16,16 @@ contains
 
   subroutine intermediate_coeffs(D_tau_sigma, D_tau_sigma_prime, tau, &
                                  tau_plus, sigma, sigma_prime, alpha, &
-                                 factorial_values, R, &
+                                 factorial_values, M, &
                                  sub_result, sub_result_prime)
     ! Compute D(tau_+, sigma, alpha) and D(tau_+, sigma', alpha)
     ! 2-space.
 
-    integer, intent(in) :: alpha, R
-    complex*16, intent(in), dimension(0:R - 1) :: D_tau_sigma
-    complex*16, intent(in), dimension(0:R - 1) :: D_tau_sigma_prime
+    integer, intent(in) :: alpha, M
+    complex*16, intent(in), dimension(0:M - 1) :: D_tau_sigma
+    complex*16, intent(in), dimension(0:M - 1) :: D_tau_sigma_prime
     real*8, intent(in) :: tau, tau_plus, sigma, sigma_prime
-    real*8, intent(in), dimension(0:R - 1) :: factorial_values
+    real*8, intent(in), dimension(0:M - 1) :: factorial_values
     complex*16, intent(out) :: sub_result, sub_result_prime
 
     ! Variables outside of signature.
@@ -36,8 +36,8 @@ contains
     sub_result = cmplx(0.0d0, 0.0d0, 16)
     sub_result_prime = cmplx(0.0d0, 0.0d0, 16)
 
-    ! gamma == beta + alpha ==> alpha <= gamma < R
-    do gamma = alpha, R - 1
+    ! gamma == beta + alpha ==> alpha <= gamma < M
+    do gamma = alpha, M - 1
        comb_val = ( &
           (factorial_values(gamma) * (tau_plus - tau)**(gamma - alpha)) / &
           (factorial_values(gamma - alpha) * factorial_values(alpha)))
@@ -55,12 +55,12 @@ contains
 
   subroutine coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, &
                              tau_plus, sigma, sigma_prime, sigma_minus, &
-                             alpha, factorial_values, R, new_coeff)
-    integer, intent(in) :: alpha, R
-    complex*16, intent(in), dimension(0:R - 1) :: D_tau_sigma
-    complex*16, intent(in), dimension(0:R - 1) :: D_tau_sigma_prime
+                             alpha, factorial_values, M, new_coeff)
+    integer, intent(in) :: alpha, M
+    complex*16, intent(in), dimension(0:M - 1) :: D_tau_sigma
+    complex*16, intent(in), dimension(0:M - 1) :: D_tau_sigma_prime
     real*8, intent(in) :: tau, tau_plus, sigma, sigma_prime, sigma_minus
-    real*8, intent(in), dimension(0:R - 1) :: factorial_values
+    real*8, intent(in), dimension(0:M - 1) :: factorial_values
     complex*16, intent(out) :: new_coeff
 
     ! Variables outside of signature.
@@ -72,7 +72,7 @@ contains
     do beta = 0, alpha
        call intermediate_coeffs(D_tau_sigma, D_tau_sigma_prime, tau, &
                                 tau_plus, sigma, sigma_prime, beta, &
-                                factorial_values, R, &
+                                factorial_values, M, &
                                 sub_result, sub_result_prime)
         partial = (sigma - sigma_minus)**(alpha - beta) * sub_result
         partial_prime = ((sigma_prime - sigma_minus)**(alpha - beta) * &
