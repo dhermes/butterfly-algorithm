@@ -38,12 +38,12 @@ contains
 
     ! gamma == beta + alpha ==> alpha <= gamma < R
     do gamma = alpha, R - 1
-        comb_val = ( &
-            (factorial_values(gamma) * (tau_plus - tau)**(gamma - alpha)) / &
-            (factorial_values(gamma - alpha) * factorial_values(alpha)))
-        sub_result = sub_result + comb_val * D_tau_sigma(gamma)
-        sub_result_prime = (sub_result_prime + &
-                            comb_val * D_tau_sigma_prime(gamma))
+       comb_val = ( &
+          (factorial_values(gamma) * (tau_plus - tau)**(gamma - alpha)) / &
+          (factorial_values(gamma - alpha) * factorial_values(alpha)))
+       sub_result = sub_result + comb_val * D_tau_sigma(gamma)
+       sub_result_prime = (sub_result_prime + &
+                           comb_val * D_tau_sigma_prime(gamma))
     enddo
 
     call dft_kernel(tau_plus - tau, sigma, K)
@@ -63,7 +63,25 @@ contains
     real*8, intent(in), dimension(0:R - 1) :: factorial_values
     complex*16, intent(out) :: new_coeff
 
+    ! Variables outside of signature.
+    complex*16 :: sub_result, sub_result_prime, partial, partial_prime
+    integer :: beta
+
     new_coeff = cmplx(0.0d0, 0.0d0, 16)
+
+    do beta = 0, alpha
+       call intermediate_coeffs(D_tau_sigma, D_tau_sigma_prime, tau, &
+                                tau_plus, sigma, sigma_prime, beta, &
+                                factorial_values, R, &
+                                sub_result, sub_result_prime)
+        partial = (sigma - sigma_minus)**(alpha - beta) * sub_result
+        partial_prime = ((sigma_prime - sigma_minus)**(alpha - beta) * &
+                         sub_result_prime)
+
+       new_coeff = new_coeff + ( &
+          cmplx(0.0d0, -1.0d0, 16)**(alpha - beta) * &
+          (partial + partial_prime) / factorial_values(alpha - beta))
+    enddo
 
   end subroutine coeff_new_level
 

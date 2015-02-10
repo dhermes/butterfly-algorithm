@@ -5,6 +5,7 @@ import time
 
 from _fortran_utils import speedup
 intermediate_coeffs = speedup.intermediate_coeffs
+coeff_new_level = speedup.coeff_new_level
 
 
 DEBUG = True
@@ -131,27 +132,6 @@ def refine_tau_endpoints(tau_endpoints):
             (left, mid),
             (mid, right),
         ])
-    return result
-
-
-# This is the big bottle neck, since it will be called 2**L times
-# for every iteration.
-def coeff_new_level(D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-                    sigma, sigma_prime, sigma_minus, alpha,
-                    factorial_values, R):
-    result = 0.0
-    for beta in xrange(alpha + 1):
-        sub_result, sub_result_prime = intermediate_coeffs(
-            D_tau_sigma, D_tau_sigma_prime, tau, tau_plus,
-            sigma, sigma_prime, beta, factorial_values, R)
-
-        partial = (sigma - sigma_minus)**(alpha - beta) * sub_result
-        partial_prime = ((sigma_prime - sigma_minus)**(alpha - beta) *
-                         sub_result_prime)
-        result += (
-            (- 1.0j)**(alpha - beta) *
-            (partial + partial_prime) / factorial_values[alpha - beta]
-        )
     return result
 
 
