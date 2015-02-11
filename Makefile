@@ -14,7 +14,7 @@ slides:
 	MAKE_BUTTERFLY_SLIDES="True" ipython nbconvert butterfly.ipynb --to slides
 
 serve-slides:
-	MAKE_BUTTERFLY_SLIDES="True" ipython nbconvert butterfly.ipynb --to slides --post serve
+	ipython nbconvert butterfly.ipynb --to slides --post serve
 
 serve-static-slides:
 	python -m SimpleHTTPServer
