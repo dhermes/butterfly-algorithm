@@ -147,3 +147,29 @@ def make_1D_centers(L=N_exp):
     fig.set_size_inches(2 * width, 2 * height, forward=True)
 
     plt.show()
+
+
+def make_interval_at_stages(center_label, left_label, right_label):
+    rows, cols = 1, 1
+    fig, ax = plt.subplots(rows, cols)
+
+    ax.plot([-1, 1], [0, 0], color='black', marker='|', markersize=20)
+    ax.plot([0], [0], color='blue', marker='o', linestyle='None')
+    ax.plot([-0.5, 0.5], [0, 0], color='red', marker='o', linestyle='None')
+
+    remove_axis_frame(ax)
+
+    ax.axis('scaled')
+    ax.set_xlim(-1.1, 1.1)
+    ax.set_ylim(-0.1, 0.1)
+    ax.annotate(center_label, xy=(0.0, 0.0), xytext=(-0.025, -0.125),
+                fontsize=24)
+    ax.annotate(left_label, xy=(0.0, 0.0), xytext=(-0.5 - 0.025, -0.125),
+                fontsize=24)
+    ax.annotate(right_label, xy=(0.0, 0.0), xytext=(0.5 - 0.025, -0.125),
+                fontsize=24)
+
+    width, height = fig.get_size_inches()
+    fig.set_size_inches(2 * width, 2 * height, forward=True)
+
+    plt.show()
