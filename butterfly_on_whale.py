@@ -5,7 +5,7 @@ import numpy as np
 import time
 
 
-from butterfly_algorithm import approximate_f_hat
+from butterfly_algorithm import solve
 
 
 def dft_data(N):
@@ -55,7 +55,7 @@ def main(M=11, L=None):
     t, s = dft_data(N)
 
     start = time.time()
-    f_hat = approximate_f_hat(t, s, data, L, M=M)
+    f_hat = solve(t, s, data, L, M=M)
     duration = time.time() - start
     print('total computation time: %g' % (duration,))
 
