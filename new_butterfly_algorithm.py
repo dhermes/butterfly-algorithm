@@ -33,6 +33,31 @@ def bin_s(s_values, L):
     return bin_info
 
 
+def create_initial_data(s_values, tau, actual_data, L, M):
+    # Compute D(tau, sigma, alpha)
+    bin_info = bin_s(s_values, L)
+    result = []
+    for sigma, value_dict in bin_info:
+        # alpha = 0 case
+        s_with_initial = [(s, dft_kernel(tau, s) * actual_data[i])
+                          for i, s in value_dict.items()]
+        # We need to make sure s is in the same order as K(tau, s) D(s),
+        # so we keep the pair since dict.items() is non-deterministic.
+        s_data = np.array([pair[0] for pair in s_with_initial])
+        s_data = (s_data - sigma) * (-1.0j)
+        values = np.array([pair[1] for pair in s_with_initial])
+
+        alpha_vals = [np.sum(values)]
+        for alpha in xrange(1, M):
+            values = values * s_data / alpha
+            alpha_vals.append(np.sum(values))
+
+        # Keep tau, sigma and the values.
+        result.append((tau, sigma, np.array(alpha_vals).reshape(M, 1)))
+
+    return result
+
+
 def compute_t_by_bins(t_values, coeff_vals, L):
     min_t = np.min(t_values)
     max_t = np.max(t_values)
@@ -57,31 +82,6 @@ def compute_t_by_bins(t_values, coeff_vals, L):
         result.append(dft_kernel(delta, sigma) * value_dot_prod[0, 0])
 
     return np.array(result)
-
-
-def create_initial_data(s_values, tau, actual_data, L, M):
-    # Compute D(tau, sigma, alpha)
-    bin_info = bin_s(s_values, L)
-    result = []
-    for sigma, value_dict in bin_info:
-        # alpha = 0 case
-        s_with_initial = [(s, dft_kernel(tau, s) * actual_data[i])
-                          for i, s in value_dict.items()]
-        # We need to make sure s is in the same order as K(tau, s) D(s),
-        # so we keep the pair since dict.items() is non-deterministic.
-        s_data = np.array([pair[0] for pair in s_with_initial])
-        s_data = (s_data - sigma) * (-1.0j)
-        values = np.array([pair[1] for pair in s_with_initial])
-
-        alpha_vals = [np.sum(values)]
-        for alpha in xrange(1, M):
-            values = values * s_data / float(alpha)
-            alpha_vals.append(np.sum(values))
-
-        # Keep tau, sigma and the values.
-        result.append((tau, sigma, np.array(alpha_vals).reshape(M, 1)))
-
-    return result
 
 
 def A1(M, delta, eye_func=np.eye):
@@ -198,25 +198,6 @@ def make_update_func(A1_minus, A1_plus, A2_minus, A2_plus, delta_T):
         return new_left_val, new_right_val
 
     return update_func
-
-
-def load_whale():
-    data = np.load('resources/bluewhale.npz')
-    X = data['X']
-
-    blue_whale_begin = 24500 - 1
-    blue_whale_end = 31000 - 1
-
-    blue_whale_call = X[blue_whale_begin:blue_whale_end + 1]
-    size_call = len(blue_whale_call)
-
-    N = int(2**np.ceil(np.log2(size_call)))
-
-    blue_whale_call = np.hstack([
-        blue_whale_call,
-        np.zeros(N - len(blue_whale_call)),
-    ])
-    return N, blue_whale_call
 
 
 def solve(s, t, data, L, M):
