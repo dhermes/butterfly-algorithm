@@ -6,7 +6,13 @@ import time
 
 
 from butterfly_algorithm import approximate_f_hat
-from butterfly_algorithm import dft_data
+
+
+def dft_data(N):
+    N_vals = np.arange(N, dtype=np.float64)
+    t = 2 * np.pi * N_vals
+    s = N_vals / N
+    return t, s
 
 
 def get_whale():
