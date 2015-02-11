@@ -102,39 +102,44 @@ def A1(M, delta, eye_func=np.eye):
     return result
 
 
-def A_update(A_val, scale_multiplier=0.5, upper_diags=True):
-    if upper_diags:
-        bottom, top, direction = 0, 1, 1
-    else:
-        bottom, top, direction = 1, 0, -1
+def mult_diag(val, A, M, diag):
+    first_row = max(0, -diag)
+    last_row = min(M, M - diag)
+    for row in xrange(first_row, last_row):
+        A[row, row + diag] *= val
 
+
+def A_update(A_val, scale_multiplier=0.5, upper_diags=True):
     M = A_val.shape[0]
+
+    # If not `upper_diags` we want the lower diagonal.
+    diag_mult = 1 if upper_diags else -1
     # We don't need to update the main diagonal since exponent=0.
     scale_factor = 1
     for diagonal in xrange(1, M):
         scale_factor *= scale_multiplier
-        rows = np.arange(bottom * diagonal, M - top * diagonal)
-        A_val[rows, direction * diagonal + rows] *= scale_factor
+        mult_diag(scale_factor, A_val, M, diagonal * diag_mult)
 
 
 def complex_eye(M):
     return np.eye(M, dtype=np.complex128)
 
 
-def set_lower_diag(val, A, M, diag):
-    rows = np.arange(0 + diag, M - 0)
-    A[rows, -diag + rows] = val
+def set_diag(val, A, M, diag):
+    first_row = max(0, -diag)
+    last_row = min(M, M - diag)
+    for row in xrange(first_row, last_row):
+        A[row, row + diag] = val
 
 
-def A2(M, delta, eye_func=complex_eye, imag=1.0j,
-       set_lower_diag=set_lower_diag):
+def A2(M, delta, eye_func=complex_eye, imag=1.0j):
     result = eye_func(M)
     new_delta = -imag * delta
 
     diagonal_value = 1
     for sub_diagonal in xrange(1, M):
         diagonal_value = diagonal_value * new_delta / sub_diagonal
-        set_lower_diag(diagonal_value, result, M, sub_diagonal)
+        set_diag(diagonal_value, result, M, -sub_diagonal)
 
     return result
 
@@ -164,8 +169,11 @@ def make_update_func(A1_minus, A1_plus, A2_minus, A2_plus, delta_T):
 
     def update_func(left_val, right_val):
         tau, sigma, alpha_vals_left = left_val
+        tau_same, sigma_prime, alpha_vals_right = right_val
         # We expect the pair to share tau, and don't check to avoid slowdown.
-        _, sigma_prime, alpha_vals_right = right_val
+        # if tau_same != tau:
+        #     import ipdb
+        #     ipdb.set_trace()
 
         sigma_minus = 0.5 * (sigma + sigma_prime)
         tau_left = tau - delta_T
@@ -176,12 +184,14 @@ def make_update_func(A1_minus, A1_plus, A2_minus, A2_plus, delta_T):
         k_minus_sigma_prime = dft_kernel(-delta_T, sigma_prime)
         k_plus_sigma_prime = 1.0 / k_minus_sigma_prime
 
-        left_applied = A2_minus.dot(alpha_vals_left)
-        right_applied = A2_plus.dot(alpha_vals_right)
-        new_alpha_vals_left = A1_minus.dot(k_minus_sigma * left_applied +
-                                           k_minus_sigma_prime * right_applied)
-        new_alpha_vals_right = A1_plus.dot(k_plus_sigma * left_applied +
-                                           k_plus_sigma_prime * right_applied)
+        new_alpha_vals_left = (
+            k_minus_sigma * A2_minus.dot(A1_minus.dot(alpha_vals_left)) +
+            k_minus_sigma_prime * A2_plus.dot(A1_minus.dot(alpha_vals_right))
+        )
+        new_alpha_vals_right = (
+            k_plus_sigma * A2_minus.dot(A1_plus.dot(alpha_vals_left)) +
+            k_plus_sigma_prime * A2_plus.dot(A1_plus.dot(alpha_vals_right))
+        )
 
         new_left_val = (tau_left, sigma_minus, new_alpha_vals_left)
         new_right_val = (tau_right, sigma_minus, new_alpha_vals_right)
