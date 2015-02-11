@@ -186,26 +186,38 @@ def make_err_plots(L10_M_choices, L11_M_choices, L12_M_choices, L13_M_choices,
     L12_log_errors = [np.log10(pair[0]) for pair in L12_time_pairs]
     L13_log_errors = [np.log10(pair[0]) for pair in L13_time_pairs]
     true_min = np.min(L10_log_errors + L11_log_errors +
-                      L11_log_errors + L13_log_errors)
+                      L12_log_errors + L13_log_errors)
+    true_min -= 1.0
     true_max = np.max(L10_log_errors + L11_log_errors +
-                      L11_log_errors + L13_log_errors)
+                      L12_log_errors + L13_log_errors)
+    true_max += 1.0
+    true_left = np.min(L10_M_choices + L11_M_choices +
+                       L12_M_choices + L13_M_choices)
+    true_left -= 3
+    true_right = np.max(L10_M_choices + L11_M_choices +
+                        L12_M_choices + L13_M_choices)
+    true_right += 3
 
     ax1.plot(L10_M_choices, L10_log_errors, marker='o')
     ax1.set_ylabel(r'$\log_{10} ||e||_2$', rotation=0, fontsize=20, labelpad=40)
     ax1.set_title(r'$L = 10$', fontsize=20)
+    ax1.set_xlim((true_left, true_right))
     ax1.set_ylim((true_min, true_max))
 
     ax2.plot(L11_M_choices, L11_log_errors, marker='o')
     ax2.set_title(r'$L = 11$', fontsize=20)
+    ax2.set_xlim((true_left, true_right))
     ax2.set_ylim((true_min, true_max))
 
     ax3.plot(L12_M_choices, L12_log_errors, marker='o')
     ax3.set_ylabel(r'$\log_{10} ||e||_2$', rotation=0, fontsize=20, labelpad=40)
     ax3.set_title(r'$L = 12$', fontsize=20)
+    ax3.set_xlim((true_left, true_right))
     ax3.set_ylim((true_min, true_max))
 
     ax4.plot(L13_M_choices, L13_log_errors, marker='o')
     ax4.set_title(r'$L = 13$', fontsize=20)
+    ax4.set_xlim((true_left, true_right))
     ax4.set_ylim((true_min, true_max))
 
     width, height = fig.get_size_inches()
@@ -231,28 +243,40 @@ def make_time_plots(L10_M_choices, L11_M_choices, L12_M_choices, L13_M_choices,
     L13_time_only = [pair[1] for pair in L13_time_pairs]
 
     true_min = np.min(L10_log_errors + L11_log_errors +
-                      L11_log_errors + L13_log_errors)
+                      L12_log_errors + L13_log_errors)
+    true_min -= 1.0
     true_max = np.max(L10_log_errors + L11_log_errors +
-                      L11_log_errors + L13_log_errors)
+                      L12_log_errors + L13_log_errors)
+    true_max += 1.0
+    true_left = np.min(L10_time_only + L11_time_only +
+                       L12_time_only + L13_time_only)
+    true_left -= 0.1
+    true_right = np.max(L10_time_only + L11_time_only +
+                        L12_time_only + L13_time_only)
+    true_right += 0.1
 
     ax1.plot(L10_time_only, L10_log_errors, marker='o')
     ax1.set_ylabel(r'$\log_{10} ||e||_2$', rotation=0, fontsize=20, labelpad=40)
     ax1.set_title(r'$L = 10$', fontsize=20)
+    ax1.set_xlim((true_left, true_right))
     ax1.set_ylim((true_min, true_max))
 
     ax2.plot(L11_time_only, L11_log_errors, marker='o')
     ax2.set_title(r'$L = 11$', fontsize=20)
+    ax2.set_xlim((true_left, true_right))
     ax2.set_ylim((true_min, true_max))
 
     ax3.plot(L12_time_only, L12_log_errors, marker='o')
     ax3.set_ylabel(r'$\log_{10} ||e||_2$', rotation=0, fontsize=20, labelpad=40)
     ax3.set_xlabel('runtime', fontsize=20)
     ax3.set_title(r'$L = 12$', fontsize=20)
+    ax3.set_xlim((true_left, true_right))
     ax3.set_ylim((true_min, true_max))
 
     ax4.plot(L13_time_only, L13_log_errors, marker='o')
     ax4.set_title(r'$L = 13$', fontsize=20)
     ax4.set_xlabel('runtime', fontsize=20)
+    ax4.set_xlim((true_left, true_right))
     ax4.set_ylim((true_min, true_max))
 
     width, height = fig.get_size_inches()
