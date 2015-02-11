@@ -10,7 +10,3 @@
 
 # Python generated files
 *.py[cod]
-
-# Fortran generated files
-types.mod
-_fortran_utils.so
