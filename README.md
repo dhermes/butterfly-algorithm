@@ -3,15 +3,28 @@
 This is my attempt to make the Butterfly Algorithm more palatable
 by using pictures, text, math and code.
 
-The notebook in progress can be [viewed][1] on `nbviewer`.
+The notebook can be [viewed][1] on `nbviewer`.
 
-It started out of a Beamer slide deck I made for myself to understand it
-better and will be re-arranged periodically to make the exposition
-easier to digest.
+### Running the Code
 
-See [MIT 18.336][2] for a great [diagram][3].
+Before running from the command line, check out this repository
+and then generate the module (from the IPython notebook)
 
-### Notes
+```
+$ git clone https://github.com/dhermes/butterfly-algorithm
+$ make generated-module
+```
+
+after doing this, the simulation can be run
+
+```
+$ ./butterfly_on_whale.py --M=50 --L=10
+```
+
+to specify the number of terms in the Taylor series (`M=50`) and the
+number of refinements (`L=10`).
+
+### Trivia
 
 To avoid using STIX fonts (don't look great for LaTeX slides),
 you can manually edit your IPython install.
@@ -53,8 +66,6 @@ The blue whale [image][4] and the butterfly [image][6] are Creative Commons
 licensed via [Attribution 2.0 Generic][5].
 
 [1]: http://nbviewer.ipython.org/github/dhermes/butterfly-algorithm/blob/master/butterfly.ipynb
-[2]: http://math.mit.edu/icg/resources/teaching/18.336/
-[3]: http://math.mit.edu/icg/resources/teaching/18.336/trees.jpg
 [4]: https://flic.kr/p/poVgjn
 [5]: https://creativecommons.org/licenses/by/2.0/
 [6]: https://flic.kr/p/avcWX2

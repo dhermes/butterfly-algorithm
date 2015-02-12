@@ -1,11 +1,3 @@
-# Output files produced by pdflatex
-*.aux
-*.log
-*.nav
-*.out
-*.snm
-*.toc
-
 .ipynb_checkpoints/
 
 # Python generated files
