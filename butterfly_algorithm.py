@@ -1,5 +1,14 @@
-from itertools import izip
 import numpy as np
+from itertools import izip
+
+
+def compute_f_hat(f, t, s, kernel_func):
+    f_hat = np.zeros(f.shape, dtype=np.complex128)
+    for k in xrange(len(f)):
+        # Vectorized update.
+        f_hat[k] = np.sum(kernel_func(t[k], s) * f)
+
+    return f_hat
 
 
 def dft_kernel(t, s):
