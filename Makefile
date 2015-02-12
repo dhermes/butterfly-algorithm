@@ -6,6 +6,7 @@ help:
 	@echo '   make slides               render slides from IPython Notebook'
 	@echo '   make serve-slides         serve slides from IPython Notebook '
 	@echo '   make serve-static-slides  serve slides from HTML             '
+	@echo '   make generated-module     make module w/methods from Notebook'
 
 pdf:
 	pdflatex butterfly_slides.tex
@@ -19,4 +20,7 @@ serve-slides:
 serve-static-slides:
 	python -m SimpleHTTPServer
 
-.PHONY: help pdf slides serve-slides
+generated-module:
+	python only_functions_from_ast.py
+
+.PHONY: help pdf slides serve-slides serve-static-slides generated-module
