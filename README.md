@@ -63,9 +63,7 @@ as above, edit the files
 /foo/IPython/nbconvert/templates/html/mathjax.tpl
 ```
 
-The sample edits are found in `patches/patched-mathjaxutils.js` and
-`patches/patched-mathjax.tpl` here. The key change is in the `"HTML-CSS"`
-key passed in to `MathJax.Hub.Config`:
+The key change is in the `"HTML-CSS"` key passed in to `MathJax.Hub.Config`:
 
 ```javascript
     "HTML-CSS": {
