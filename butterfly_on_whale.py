@@ -5,6 +5,7 @@ import numpy as np
 import time
 
 
+from butterfly_algorithm import load_whale
 from butterfly_algorithm import solve
 
 
@@ -13,26 +14,6 @@ def dft_data(N):
     t = 2 * np.pi * N_vals
     s = N_vals / N
     return t, s
-
-
-def get_whale():
-    data = np.load('resources/bluewhale.npz')
-    X = data['X']
-
-    blue_whale_begin = 24500 - 1
-    blue_whale_end = 31000 - 1
-
-    blue_whale_call = X[blue_whale_begin:blue_whale_end + 1]
-    size_call = len(blue_whale_call)
-
-    N = int(2**np.ceil(np.log2(size_call)))
-
-    blue_whale_call = np.hstack([
-        blue_whale_call,
-        np.zeros(N - len(blue_whale_call)),
-    ])
-
-    return blue_whale_call, N
 
 
 def main(M=11, L=None):
@@ -47,7 +28,8 @@ def main(M=11, L=None):
     M=14 -- 5.3 seconds per loop; 2-norm error = O(10^(-7))
     M=15 -- 6.0 seconds per loop; 2-norm error = O(10^(-8))
     """
-    data, N = get_whale()
+    _, data = load_whale()
+    N = len(data)
     if L is None:
         L = int(np.floor(np.log2(N)))
     print 'N = %d points, M = %d truncated terms, L = %d refinements' % (
