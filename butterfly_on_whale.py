@@ -17,17 +17,6 @@ def dft_data(N):
 
 
 def main(M=11, L=None):
-    """Expected performance:
-
-    M= 8 -- 1.9 seconds per loop; 2-norm error = O(10^(-1))
-    M= 9 -- 2.3 seconds per loop; 2-norm error = O(10^(-2))
-    M=10 -- 2.8 seconds per loop; 2-norm error = O(10^(-3))
-    M=11 -- 3.3 seconds per loop; 2-norm error = O(10^(-4))
-    M=12 -- 3.9 seconds per loop; 2-norm error = O(10^(-5))
-    M=13 -- 4.5 seconds per loop; 2-norm error = O(10^(-6))
-    M=14 -- 5.3 seconds per loop; 2-norm error = O(10^(-7))
-    M=15 -- 6.0 seconds per loop; 2-norm error = O(10^(-8))
-    """
     _, data = load_whale()
     N = len(data)
     if L is None:
