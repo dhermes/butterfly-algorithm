@@ -104,9 +104,42 @@ func compareNaive() {
 	fmt.Println("||e||_2:", cblas128.Nrm2(N, err_vals))
 }
 
+func PrintMatrix(m cblas128.General) {
+	for row := 0; row < m.Rows; row++ {
+		index := row
+		fmt.Printf("[")
+		for col := 0; col < m.Cols; col++ {
+			fmt.Printf("%v", m.Data[index])
+			fmt.Printf(" ")
+			index += m.Stride
+		}
+		fmt.Println("]")
+	}
+}
+
+func AddColumn(m cblas128.General, col int, v cblas128.Vector) {
+	v_tmp := cblas128.Vector{Inc: 1, Data: m.Data[col*m.Stride:]}
+	cblas128.Copy(len(v.Data), v, v_tmp)
+}
+
+func matrixManipulation() {
+	s := []complex128{1.0, 2.0, 3.0}
+	N := len(s)
+	v := cblas128.Vector{Inc: 1, Data: s}
+	m_data := make([]complex128, 4*N)
+	m := cblas128.General{Rows: N, Cols: 4, Stride: N, Data: m_data}
+	fmt.Println("Before:")
+
+	PrintMatrix(m)
+	AddColumn(m, 1, v)
+
+	fmt.Println("After:")
+	PrintMatrix(m)
+}
+
 func main() {
 	// See: http://godoc.org/github.com/gonum/blas
 	// sudo apt-get install libopenblas-dev
 	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
-	compareNaive()
+	matrixManipulation()
 }
