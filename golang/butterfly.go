@@ -41,15 +41,6 @@ func dftKernel(t, s complex128) complex128 {
 	return cmplx.Exp(minusI * t * s)
 }
 
-// Most naive version of numpy.ones.
-func Ones(val complex128, count int) []complex128 {
-	result := make([]complex128, count)
-	for i := 0; i < count; i++ {
-		result[i] = val
-	}
-	return result
-}
-
 // This is like numpy.ones. Styled after `bytes.Repeat`.
 func Repeat(val complex128, count int) []complex128 {
 	result := make([]complex128, count)
@@ -183,27 +174,9 @@ func matrixManipulation() {
 	PrintMatrix(m)
 }
 
-func compareOnesAndRepeat() {
-	val := complex(1.2, 1)
-
-	start := time.Now()
-	for i := 0; i < 1000; i++ {
-		Ones(val, 1024)
-	}
-	elapsed_ones := time.Since(start)
-	fmt.Println("Ones took:", elapsed_ones)
-
-	start = time.Now()
-	for i := 0; i < 1000; i++ {
-		Repeat(val, 1024)
-	}
-	elapsed_repeat := time.Since(start)
-	fmt.Println("Repeat took:", elapsed_repeat)
-}
-
 func main() {
 	// See: http://godoc.org/github.com/gonum/blas
 	// sudo apt-get install libopenblas-dev
 	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
-	compareOnesAndRepeat()
+	matrixManipulation()
 }
