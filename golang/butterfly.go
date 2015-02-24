@@ -8,6 +8,7 @@ import (
 	"math/cmplx"
 	"path"
 	"runtime"
+	"time"
 
 	"github.com/gonum/blas/cblas128"
 	"github.com/mjibson/go-dsp/fft"
@@ -74,10 +75,7 @@ func getDFTData(N int) ([]complex128, []complex128) {
 	return t, s
 }
 
-func main() {
-	// See: http://godoc.org/github.com/gonum/blas
-	// sudo apt-get install libopenblas-dev
-	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
+func compareNaive() {
 	blue_whale_call, err := LoadWhale()
 	if err != nil {
 		fmt.Printf("File error: %v\n", err)
@@ -86,10 +84,17 @@ func main() {
 	N := len(*blue_whale_call)
 	t, s := getDFTData(N)
 
+	start := time.Now()
 	dft_whale_call := fft.FFT(*blue_whale_call)
+	elapsed_fft := time.Since(start)
+
+	start = time.Now()
 	computed_f_hat := computeFHat(*blue_whale_call, t, s)
+	elapsed_naive := time.Since(start)
 
 	fmt.Println("N:", N)
+	fmt.Println("FFT took:", elapsed_fft)
+	fmt.Println("Naive DFT took:", elapsed_naive)
 
 	err_vals := cblas128.Vector{Inc: 1, Data: dft_whale_call}
 	c := cblas128.Vector{Inc: 1, Data: computed_f_hat}
@@ -97,4 +102,11 @@ func main() {
 	cblas128.Axpy(N, -1.0, c, err_vals)
 
 	fmt.Println("||e||_2:", cblas128.Nrm2(N, err_vals))
+}
+
+func main() {
+	// See: http://godoc.org/github.com/gonum/blas
+	// sudo apt-get install libopenblas-dev
+	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
+	compareNaive()
 }
