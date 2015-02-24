@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/cmplx"
 	"path"
 	"runtime"
 
-	"github.com/gonum/blas/blas64"
+	"github.com/gonum/blas/cblas128"
 )
+
+const minusI complex128 = complex(0, -1)
 
 func LoadWhale() (*[]float64, error) {
 	// H/T: andrewbrookins.com/tech/golang-get-directory-of-the-current-file/
@@ -25,10 +28,16 @@ func LoadWhale() (*[]float64, error) {
 	return &blue_whale_call, nil
 }
 
+func dftKernel(t, s complex128) complex128 {
+	return cmplx.Exp(minusI * t * s)
+}
+
 func main() {
 	// See: http://godoc.org/github.com/gonum/blas
-	v := blas64.Vector{Inc: 1, Data: []float64{1, 1, 1}}
-	fmt.Println("v has length:", blas64.Nrm2(len(v.Data), v))
+	// sudo apt-get install libopenblas-dev
+	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
+	v := cblas128.Vector{Inc: 1, Data: []complex128{1, 1, 1}}
+	fmt.Println("v has length:", cblas128.Nrm2(len(v.Data), v))
 
 	blue_whale_call, err := LoadWhale()
 	if err != nil {
