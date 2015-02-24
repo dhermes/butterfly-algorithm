@@ -30,8 +30,9 @@ func LoadWhale() (*[]complex128, error) {
 	json.Unmarshal(contents, &float64_call)
 
 	blue_whale_call := make([]complex128, len(float64_call))
-	for i, value := range float64_call {
-		blue_whale_call[i] = complex(value, 0.0)
+	// Don't use range to avoid copying data.
+	for i := 0; i < len(float64_call); i++ {
+		blue_whale_call[i] = complex(float64_call[i], 0.0)
 	}
 	return &blue_whale_call, nil
 }
@@ -48,8 +49,9 @@ func dftKernelVectorized(t complex128, s []complex128) []complex128 {
 	cblas128.Axpy(N, t*minusI, v, w)
 	// TODO(dhermes): Determine if there is a way to vectorize this
 	//                operation.
-	for i, value := range result {
-		result[i] = cmplx.Exp(value)
+	// Don't use range to avoid copying data.
+	for i := 0; i < len(result); i++ {
+		result[i] = cmplx.Exp(result[i])
 	}
 	return result
 }
@@ -73,35 +75,6 @@ func getDFTData(N int) ([]complex128, []complex128) {
 		s[k] = complex(float64(k)/float64(N), 0)
 	}
 	return t, s
-}
-
-func compareNaive() {
-	blue_whale_call, err := LoadWhale()
-	if err != nil {
-		fmt.Printf("File error: %v\n", err)
-	}
-
-	N := len(*blue_whale_call)
-	t, s := getDFTData(N)
-
-	start := time.Now()
-	dft_whale_call := fft.FFT(*blue_whale_call)
-	elapsed_fft := time.Since(start)
-
-	start = time.Now()
-	computed_f_hat := computeFHat(*blue_whale_call, t, s)
-	elapsed_naive := time.Since(start)
-
-	fmt.Println("N:", N)
-	fmt.Println("FFT took:", elapsed_fft)
-	fmt.Println("Naive DFT took:", elapsed_naive)
-
-	err_vals := cblas128.Vector{Inc: 1, Data: dft_whale_call}
-	c := cblas128.Vector{Inc: 1, Data: computed_f_hat}
-	// err_vals -= computed_f_hat
-	cblas128.Axpy(N, -1.0, c, err_vals)
-
-	fmt.Println("||e||_2:", cblas128.Nrm2(N, err_vals))
 }
 
 func PrintMatrix(m cblas128.General) {
@@ -143,6 +116,35 @@ func CopyDiagonal(m cblas128.General, diag int, v cblas128.Vector) {
 	}
 	v_tmp := cblas128.Vector{Inc: 1 + m.Stride, Data: m.Data[diag_start:]}
 	cblas128.Copy(diag_len, v, v_tmp)
+}
+
+func compareNaive() {
+	blue_whale_call, err := LoadWhale()
+	if err != nil {
+		fmt.Printf("File error: %v\n", err)
+	}
+
+	N := len(*blue_whale_call)
+	t, s := getDFTData(N)
+
+	start := time.Now()
+	dft_whale_call := fft.FFT(*blue_whale_call)
+	elapsed_fft := time.Since(start)
+
+	start = time.Now()
+	computed_f_hat := computeFHat(*blue_whale_call, t, s)
+	elapsed_naive := time.Since(start)
+
+	fmt.Println("N:", N)
+	fmt.Println("FFT took:", elapsed_fft)
+	fmt.Println("Naive DFT took:", elapsed_naive)
+
+	err_vals := cblas128.Vector{Inc: 1, Data: dft_whale_call}
+	c := cblas128.Vector{Inc: 1, Data: computed_f_hat}
+	// err_vals -= computed_f_hat
+	cblas128.Axpy(N, -1.0, c, err_vals)
+
+	fmt.Println("||e||_2:", cblas128.Nrm2(N, err_vals))
 }
 
 func matrixManipulation() {
