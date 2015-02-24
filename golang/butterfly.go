@@ -122,6 +122,11 @@ func CopyColumn(m cblas128.General, col int, v cblas128.Vector) {
 	cblas128.Copy(m.Rows, v, v_tmp)
 }
 
+func CopyRow(m cblas128.General, row int, v cblas128.Vector) {
+	v_tmp := cblas128.Vector{Inc: m.Stride, Data: m.Data[row:]}
+	cblas128.Copy(m.Cols, v, v_tmp)
+}
+
 func CopyDiagonal(m cblas128.General, diag int, v cblas128.Vector) {
 	diag_last_row := m.Cols - diag
 	if diag_last_row > m.Rows {
@@ -141,29 +146,17 @@ func CopyDiagonal(m cblas128.General, diag int, v cblas128.Vector) {
 }
 
 func matrixManipulation() {
-	s := []complex128{1.0, 2.0, 3.0}
-	N := len(s)
-	v := cblas128.Vector{Inc: 1, Data: s}
-	m_data := make([]complex128, 4*N)
-	m := cblas128.General{Rows: N, Cols: 4, Stride: N, Data: m_data}
+	rows, cols := 3, 4
+	m_data := make([]complex128, rows*cols)
+	m := cblas128.General{Rows: rows, Cols: cols, Stride: rows, Data: m_data}
 
 	fmt.Println("Before:")
 	PrintMatrix(m)
 
-	CopyColumn(m, 1, v)
-	fmt.Println("After Col 1:")
-	PrintMatrix(m)
-
-	CopyDiagonal(m, 0, v)
-	fmt.Println("After 0:")
-	PrintMatrix(m)
-
-	CopyDiagonal(m, -1, v)
-	fmt.Println("After -1:")
-	PrintMatrix(m)
-
-	CopyDiagonal(m, 1, v)
-	fmt.Println("After 1:")
+	s := []complex128{1.0, 2.0, 3.0, 4.0}
+	v := cblas128.Vector{Inc: 1, Data: s}
+	CopyRow(m, 2, v)
+	fmt.Println("After Row 2:")
 	PrintMatrix(m)
 }
 
