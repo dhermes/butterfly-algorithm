@@ -55,6 +55,13 @@ func Repeat(val complex128, count int) []complex128 {
 	return result
 }
 
+// See src/runtime/slice.go (as of df027ac)
+type sliceStruct struct {
+	Array unsafe.Pointer
+	Len   int
+	Cap   int
+}
+
 func RepeatAsBytes(val complex128, count int) []complex128 {
 	b := *(*[16]byte)(unsafe.Pointer(&val))
 	b_repeat := bytes.Repeat(b[:], count)
@@ -189,52 +196,10 @@ func matrixManipulation() {
 	PrintMatrix(m)
 }
 
-// See src/runtime/slice.go (as of df027ac)
-type sliceStruct struct {
-	Array unsafe.Pointer
-	Len   int
-	Cap   int
-}
-
-func floatSliceToComplex(s []float64) []complex128 {
-	// Cast to `sliceStruct` to get at the underlying array.
-	s_struct := *(*sliceStruct)(unsafe.Pointer(&s))
-
-	complex_struct := sliceStruct{
-		Array: s_struct.Array,
-		Len:   s_struct.Len / 2,
-		Cap:   s_struct.Cap / 2,
-	}
-	return *(*[]complex128)(unsafe.Pointer(&complex_struct))
-}
-
-func floatsToComplexArray() {
-	fmt.Println("floatsToComplexArray:")
-
-	// Must be an array [2*N]float64{} not a slice so sizeof(...) = 16*N.
-	real_imag := [4]float64{1.2, 1, 10.2, -0.4}
-	fmt.Println("===========")
-	fmt.Println(real_imag)
-
-	// Inspired by math/unsafe:Float64frombits.
-	c := *(*[2]complex128)(unsafe.Pointer(&real_imag))
-	fmt.Println("===========")
-	fmt.Println(c)
-}
-
 func main() {
 	// See: http://godoc.org/github.com/gonum/blas
 	// sudo apt-get install libopenblas-dev
 	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
 	val := complex(4.2, 13.37)
-
-	var start time.Time
-	var elapsed_repeat time.Duration
-	for i := 0; i < 1000; i++ {
-		start = time.Now()
-		RepeatAsBytes(val, 4096)
-		elapsed_repeat += time.Since(start)
-	}
-
-	fmt.Println(elapsed_repeat)
+	fmt.Println(RepeatAsBytes(val, 10))
 }
