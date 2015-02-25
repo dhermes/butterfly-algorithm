@@ -78,17 +78,15 @@ func dftKernel(t, s complex128) complex128 {
 	return cmplx.Exp(minusI * t * s)
 }
 
-func dftKernelVectorized(t complex128, s []complex128) []complex128 {
-	N := len(s)
-	result := make([]complex128, N)
-	v := cblas128.Vector{Inc: 1, Data: s}
-	w := cblas128.Vector{Inc: 1, Data: result}
-	cblas128.Axpy(N, t*minusI, v, w)
+func dftKernelVectorized(t complex128, s cblas128.Vector) cblas128.Vector {
+	N := len(s.Data)
+	result := cblas128.Vector{Inc: 1, Data: make([]complex128, N)}
+	cblas128.Axpy(N, t*minusI, s, result)
 	// TODO(dhermes): Determine if there is a way to vectorize this
 	//                operation.
 	// Don't use range to avoid copying data.
-	for i := 0; i < len(result); i++ {
-		result[i] = cmplx.Exp(result[i])
+	for i := 0; i < N; i++ {
+		result.Data[i] = cmplx.Exp(result.Data[i])
 	}
 	return result
 }
@@ -97,8 +95,9 @@ func computeFHat(f, t, s []complex128) []complex128 {
 	N := len(f)
 	f_hat := make([]complex128, N)
 	f_vec := cblas128.Vector{Inc: 1, Data: f}
+	s_vec := cblas128.Vector{Inc: 1, Data: s}
 	for k := 0; k < N; k++ {
-		v := cblas128.Vector{Inc: 1, Data: dftKernelVectorized(t[k], s)}
+		v := dftKernelVectorized(t[k], s_vec)
 		f_hat[k] = cblas128.Dotu(N, v, f_vec)
 	}
 	return f_hat
