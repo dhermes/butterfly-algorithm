@@ -55,6 +55,19 @@ func Repeat(val complex128, count int) []complex128 {
 	return result
 }
 
+func RepeatAsBytes(val complex128, count int) []complex128 {
+	b := *(*[16]byte)(unsafe.Pointer(&val))
+	b_repeat := bytes.Repeat(b[:], count)
+	b_struct := *(*sliceStruct)(unsafe.Pointer(&b_repeat))
+
+	complex_struct := sliceStruct{
+		Array: b_struct.Array,
+		Len:   count,
+		Cap:   count,
+	}
+	return *(*[]complex128)(unsafe.Pointer(&complex_struct))
+}
+
 func dftKernelVectorized(t complex128, s []complex128) []complex128 {
 	N := len(s)
 	result := make([]complex128, N)
@@ -209,25 +222,19 @@ func floatsToComplexArray() {
 	fmt.Println(c)
 }
 
-func bytesTricks() {
-	c := complex(4.2, 13.37)
-	b := *(*[16]byte)(unsafe.Pointer(&c))
-
-	b5 := bytes.Repeat(b[:], 5)
-	b_struct := *(*sliceStruct)(unsafe.Pointer(&b5))
-
-	complex_struct := sliceStruct{
-		Array: b_struct.Array,
-		Len:   5,
-		Cap:   5,
-	}
-	cs := *(*[]complex128)(unsafe.Pointer(&complex_struct))
-	fmt.Println(cs)
-}
-
 func main() {
 	// See: http://godoc.org/github.com/gonum/blas
 	// sudo apt-get install libopenblas-dev
 	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
-	bytesTricks()
+	val := complex(4.2, 13.37)
+
+	var start time.Time
+	var elapsed_repeat time.Duration
+	for i := 0; i < 1000; i++ {
+		start = time.Now()
+		RepeatAsBytes(val, 4096)
+		elapsed_repeat += time.Since(start)
+	}
+
+	fmt.Println(elapsed_repeat)
 }
