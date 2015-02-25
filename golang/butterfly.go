@@ -18,7 +18,16 @@ import (
 
 const minusI complex128 = complex(0, -1)
 
-func LoadWhale() (*[]complex128, error) {
+func floatToComplex(s []float64) []complex128 {
+	result := make([]complex128, len(s))
+	// Don't use range to avoid copying data.
+	for i := 0; i < len(s); i++ {
+		result[i] = complex(s[i], 0.0)
+	}
+	return result
+}
+
+func LoadWhale() ([]complex128, error) {
 	// H/T: andrewbrookins.com/tech/golang-get-directory-of-the-current-file/
 	_, filename, _, _ := runtime.Caller(1)
 	whale_path := path.Join(path.Dir(filename), "bluewhale.json")
@@ -30,17 +39,7 @@ func LoadWhale() (*[]complex128, error) {
 
 	var float64_call []float64
 	json.Unmarshal(contents, &float64_call)
-
-	blue_whale_call := make([]complex128, len(float64_call))
-	// Don't use range to avoid copying data.
-	for i := 0; i < len(float64_call); i++ {
-		blue_whale_call[i] = complex(float64_call[i], 0.0)
-	}
-	return &blue_whale_call, nil
-}
-
-func dftKernel(t, s complex128) complex128 {
-	return cmplx.Exp(minusI * t * s)
+	return floatToComplex(float64_call), nil
 }
 
 // This is like numpy.ones. Styled after `bytes.Repeat`.
@@ -73,6 +72,10 @@ func RepeatAsBytes(val complex128, count int) []complex128 {
 		Cap:   count,
 	}
 	return *(*[]complex128)(unsafe.Pointer(&complex_struct))
+}
+
+func dftKernel(t, s complex128) complex128 {
+	return cmplx.Exp(minusI * t * s)
 }
 
 func dftKernelVectorized(t complex128, s []complex128) []complex128 {
@@ -158,15 +161,15 @@ func compareNaive() {
 		fmt.Printf("File error: %v\n", err)
 	}
 
-	N := len(*blue_whale_call)
+	N := len(blue_whale_call)
 	t, s := getDFTData(N)
 
 	start := time.Now()
-	dft_whale_call := fft.FFT(*blue_whale_call)
+	dft_whale_call := fft.FFT(blue_whale_call)
 	elapsed_fft := time.Since(start)
 
 	start = time.Now()
-	computed_f_hat := computeFHat(*blue_whale_call, t, s)
+	computed_f_hat := computeFHat(blue_whale_call, t, s)
 	elapsed_naive := time.Since(start)
 
 	fmt.Println("N:", N)
