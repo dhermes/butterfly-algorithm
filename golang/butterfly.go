@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -209,20 +210,19 @@ func floatsToComplexArray() {
 }
 
 func bytesTricks() {
-	f1 := 4.2
-	bs1 := *(*[8]byte)(unsafe.Pointer(&f1))
-	f2 := 13.37
-	bs2 := *(*[8]byte)(unsafe.Pointer(&f2))
+	c := complex(4.2, 13.37)
+	b := *(*[16]byte)(unsafe.Pointer(&c))
 
-	var b [16]byte
-	copy(b[:8], bs1[:])
-	copy(b[8:], bs2[:])
+	b5 := bytes.Repeat(b[:], 5)
+	b_struct := *(*sliceStruct)(unsafe.Pointer(&b5))
 
-	fs := *(*[2]float64)(unsafe.Pointer(&b))
-	fmt.Println(fs)
-
-	c := *(*complex128)(unsafe.Pointer(&b))
-	fmt.Println(c)
+	complex_struct := sliceStruct{
+		Array: b_struct.Array,
+		Len:   5,
+		Cap:   5,
+	}
+	cs := *(*[]complex128)(unsafe.Pointer(&complex_struct))
+	fmt.Println(cs)
 }
 
 func main() {
