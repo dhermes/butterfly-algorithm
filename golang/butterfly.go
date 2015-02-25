@@ -1,14 +1,12 @@
 package main
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"math/cmplx"
 	"path"
-	"reflect"
 	"runtime"
 	"time"
 	"unsafe"
@@ -210,22 +208,26 @@ func floatsToComplexArray() {
 	fmt.Println(c)
 }
 
-func floatsToBytes() {
-	x := math.Float64bits(1.2)
-	x_bytes := make([]byte, 8)
+func bytesTricks() {
+	f1 := 4.2
+	bs1 := *(*[8]byte)(unsafe.Pointer(&f1))
+	f2 := 13.37
+	bs2 := *(*[8]byte)(unsafe.Pointer(&f2))
 
-	binary.BigEndian.PutUint64(x_bytes, x)
+	var b [16]byte
+	copy(b[:8], bs1[:])
+	copy(b[8:], bs2[:])
 
-	fmt.Println("===========")
-	fmt.Println(reflect.TypeOf(x_bytes))
-	fmt.Println(x_bytes)
+	fs := *(*[2]float64)(unsafe.Pointer(&b))
+	fmt.Println(fs)
+
+	c := *(*complex128)(unsafe.Pointer(&b))
+	fmt.Println(c)
 }
 
 func main() {
 	// See: http://godoc.org/github.com/gonum/blas
 	// sudo apt-get install libopenblas-dev
 	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
-	s := []float64{1.2, 1, 10.2, -0.4}
-	c := floatSliceToComplex(s)
-	fmt.Println(c)
+	bytesTricks()
 }
