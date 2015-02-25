@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/cmplx"
 	"path"
+	"reflect"
 	"runtime"
 	"time"
 	"unsafe"
@@ -54,22 +55,15 @@ func Repeat(val complex128, count int) []complex128 {
 	return result
 }
 
-// See src/runtime/slice.go (as of df027ac)
-type sliceStruct struct {
-	Array unsafe.Pointer
-	Len   int
-	Cap   int
-}
-
 func RepeatAsBytes(val complex128, count int) []complex128 {
 	b := *(*[16]byte)(unsafe.Pointer(&val))
 	b_repeat := bytes.Repeat(b[:], count)
-	b_struct := *(*sliceStruct)(unsafe.Pointer(&b_repeat))
+	b_struct := *(*reflect.SliceHeader)(unsafe.Pointer(&b_repeat))
 
-	complex_struct := sliceStruct{
-		Array: b_struct.Array,
-		Len:   count,
-		Cap:   count,
+	complex_struct := reflect.SliceHeader{
+		Data: b_struct.Data,
+		Len:  count,
+		Cap:  count,
 	}
 	return *(*[]complex128)(unsafe.Pointer(&complex_struct))
 }
@@ -314,21 +308,40 @@ func matrixManipulation() {
 	PrintMatrix(m)
 }
 
-func main() {
-	// See: http://godoc.org/github.com/gonum/blas
-	// sudo apt-get install libopenblas-dev
-	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
-
+func checkCreateInitialData() {
 	s := []float64{0.0, 1.0}
 	min_s, max_s := 0.0, 1.0
 	tau := 1.0
 	actual_data := []complex128{3.0, 4.0}
 	num_bins := 4
 	M := 2
-	sum_parts := createInitialData(s, min_s, max_s, tau, actual_data, num_bins, M)
+	bin_data := createInitialData(s, min_s, max_s, tau, actual_data, num_bins, M)
 	for i := 0; i < num_bins; i++ {
-		fmt.Printf("%v ", sum_parts[i].Tau)
-		fmt.Printf("%v ", sum_parts[i].Sigma)
-		PrintVector(M, sum_parts[i].Coeffs)
+		fmt.Printf("%v ", bin_data[i].Tau)
+		fmt.Printf("%v ", bin_data[i].Sigma)
+		PrintVector(M, bin_data[i].Coeffs)
 	}
+}
+
+func timeRepeatAsBytes() {
+	val := complex(4.2, 13.37)
+	fmt.Println(RepeatAsBytes(val, 3))
+
+	var start time.Time
+	var elapsed_repeat time.Duration
+	for i := 0; i < 1000; i++ {
+		start = time.Now()
+		RepeatAsBytes(val, 4096)
+		elapsed_repeat += time.Since(start)
+	}
+
+	fmt.Println(elapsed_repeat)
+}
+
+func main() {
+	// See: http://godoc.org/github.com/gonum/blas
+	// sudo apt-get install libopenblas-dev
+	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
+	timeRepeatAsBytes()
+	checkCreateInitialData()
 }
