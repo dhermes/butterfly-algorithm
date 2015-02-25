@@ -177,16 +177,35 @@ func matrixManipulation() {
 	PrintMatrix(m)
 }
 
-func floatsToComplex() {
-	fmt.Println("floatsToComplex:")
+// See src/runtime/slice.go (as of df027ac)
+type sliceStruct struct {
+	Array unsafe.Pointer
+	Len   int
+	Cap   int
+}
 
-	// Must be an array [2]float64{} not a slice so sizeof(...) = 16.
-	real_imag := [2]float64{1.2, 1}
+func floatSliceToComplex(s []float64) []complex128 {
+	// Cast to `sliceStruct` to get at the underlying array.
+	s_struct := *(*sliceStruct)(unsafe.Pointer(&s))
+
+	complex_struct := sliceStruct{
+		Array: s_struct.Array,
+		Len:   s_struct.Len / 2,
+		Cap:   s_struct.Cap / 2,
+	}
+	return *(*[]complex128)(unsafe.Pointer(&complex_struct))
+}
+
+func floatsToComplexArray() {
+	fmt.Println("floatsToComplexArray:")
+
+	// Must be an array [2*N]float64{} not a slice so sizeof(...) = 16*N.
+	real_imag := [4]float64{1.2, 1, 10.2, -0.4}
 	fmt.Println("===========")
 	fmt.Println(real_imag)
 
 	// Inspired by math/unsafe:Float64frombits.
-	c := *(*complex128)(unsafe.Pointer(&real_imag))
+	c := *(*[2]complex128)(unsafe.Pointer(&real_imag))
 	fmt.Println("===========")
 	fmt.Println(c)
 }
@@ -206,6 +225,7 @@ func main() {
 	// See: http://godoc.org/github.com/gonum/blas
 	// sudo apt-get install libopenblas-dev
 	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
-	floatsToBytes()
-	floatsToComplex()
+	s := []float64{1.2, 1, 10.2, -0.4}
+	c := floatSliceToComplex(s)
+	fmt.Println(c)
 }
