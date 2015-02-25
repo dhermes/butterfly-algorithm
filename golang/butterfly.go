@@ -1,14 +1,17 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"math/cmplx"
 	"path"
+	"reflect"
 	"runtime"
 	"time"
+	"unsafe"
 
 	"github.com/gonum/blas/cblas128"
 	"github.com/mjibson/go-dsp/fft"
@@ -174,9 +177,35 @@ func matrixManipulation() {
 	PrintMatrix(m)
 }
 
+func floatsToComplex() {
+	fmt.Println("floatsToComplex:")
+
+	// Must be an array [2]float64{} not a slice so sizeof(...) = 16.
+	real_imag := [2]float64{1.2, 1}
+	fmt.Println("===========")
+	fmt.Println(real_imag)
+
+	// Inspired by math/unsafe:Float64frombits.
+	c := *(*complex128)(unsafe.Pointer(&real_imag))
+	fmt.Println("===========")
+	fmt.Println(c)
+}
+
+func floatsToBytes() {
+	x := math.Float64bits(1.2)
+	x_bytes := make([]byte, 8)
+
+	binary.BigEndian.PutUint64(x_bytes, x)
+
+	fmt.Println("===========")
+	fmt.Println(reflect.TypeOf(x_bytes))
+	fmt.Println(x_bytes)
+}
+
 func main() {
 	// See: http://godoc.org/github.com/gonum/blas
 	// sudo apt-get install libopenblas-dev
 	// CGO_LDFLAGS="-L/usr/lib/libopenblas.so -lopenblas" go install github.com/gonum/blas/cgo
-	matrixManipulation()
+	floatsToBytes()
+	floatsToComplex()
 }
